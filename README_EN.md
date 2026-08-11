@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/worldwonderer/drama-skills)](LICENSE)
 
 An AI short-drama creation suite for screenwriters, motion-comic studios, and
-directors. Eight skills take an idea or a long-form source all the way to episode
+directors. Ten skills take an idea or a long-form source all the way to episode
 scripts, asset decisions, image prompts, storyboard keyframes, video prompts, and
 independent review records — carrying creator decisions, source evidence, and
 continuity through the entire chain. Works with Claude Code, Codex, and other
@@ -54,7 +54,7 @@ Install this skill suite: https://github.com/worldwonderer/drama-skills
 ```
 
 <details>
-<summary>Manual linking (the eight directories must stay siblings)</summary>
+<summary>Manual linking (the ten directories must stay siblings)</summary>
 
 ```bash
 git clone https://github.com/worldwonderer/drama-skills.git && cd drama-skills
@@ -106,36 +106,43 @@ Use $short-drama-review to review EP001's script and prompts
 See [demo/](demo/) for one episode's full excerpt chain: script → asset sheets →
 storyboard → video prompts.
 
-## The eight skills
+## The ten skills
 
 ```mermaid
 flowchart LR
     classDef phase fill:#e8f4fd,color:#1a1a2e,stroke:#4a9be8,stroke-width:1px
     classDef final fill:#fce4ec,color:#333,stroke:#e57373,stroke-width:1px
 
+    nva["Source analysis<br/>$short-drama-novel-analyze"]:::phase
     dev["Story development<br/>$short-drama-develop"]:::phase
     write["Episode script<br/>$short-drama-write"]:::phase
     assets["Asset decisions<br/>$short-drama-assets"]:::phase
     img["Image prompts<br/>$short-drama-image-prompts"]:::phase
+    vox["Voice prompts<br/>$short-drama-voice-prompts"]:::phase
     sb["Storyboard/keyframes<br/>$short-drama-storyboard"]:::phase
     vid["Video prompts<br/>$short-drama-video-prompts"]:::phase
     rev["Independent review<br/>$short-drama-review"]:::final
     pkg["Text delivery package"]:::final
 
+    nva -.with a source.-> dev
     dev -.optional.-> write --> assets
     assets --> img
+    assets --> vox
     assets --> sb --> vid
     img --> rev
+    vox --> rev
     vid --> rev --> pkg
 ```
 
 | Skill | Responsibility |
 |---|---|
 | `short-drama` | Init, routing, visual direction/Look Development, state, acceptance/review lifecycle, delivery |
+| `short-drama-novel-analyze` | Chapter index, per-chapter function extraction, story units and rhythm, character/world candidates, adaptation value, and episode candidates for a long source |
 | `short-drama-develop` | Traceable novel/long-form adaptation, story engine, episode map, director brief, genre & hook playbook |
 | `short-drama-write` | Episode contract, causal beats, performable screenplay, and the project's accepted production dialect |
 | `short-drama-assets` | Character/Look, Location/View, Prop/State, continuity decisions |
 | `short-drama-image-prompts` | Lookdev style frames, reusable character/location/prop reference prompts, and scoped edits |
+| `short-drama-voice-prompts` | Copyable timbre, casting, and audition prompts projected from accepted voice direction |
 | `short-drama-storyboard` | Optional scene visual plans and Coverage Auditions, source coverage, shots, boundaries, and frozen keyframes |
 | `short-drama-video-prompts` | Ordered action, multi-actor performance and attention handoffs, camera/audio intent, timing, and exact boundaries |
 | `short-drama-review` | Structural/content review, project-bounded diagnosis from authorized production observations, and independent verdicts |

@@ -18,10 +18,12 @@ SPEC.loader.exec_module(verify_suite)
 
 EXPECTED_SKILLS = {
     "short-drama",
+    "short-drama-novel-analyze",
     "short-drama-develop",
     "short-drama-write",
     "short-drama-assets",
     "short-drama-image-prompts",
+    "short-drama-voice-prompts",
     "short-drama-storyboard",
     "short-drama-video-prompts",
     "short-drama-review",
@@ -96,7 +98,7 @@ class SuiteAnatomyTests(unittest.TestCase):
             cache.parent.mkdir(parents=True, exist_ok=True)
             cache.write_bytes(b"local bytecode cache")
             result = verify_suite.verify_suite(copied / "short-drama")
-            self.assertEqual(len(result["checked_skills"]), 8)
+            self.assertEqual(len(result["checked_skills"]), len(EXPECTED_SKILLS))
 
     def test_exact_public_skill_set(self) -> None:
         actual = {path.name for path in (SUITE / "skills").iterdir() if path.is_dir()}
@@ -119,6 +121,7 @@ class SuiteAnatomyTests(unittest.TestCase):
                 "scripts/motion_timing_check.py",
             },
             "short-drama-write": {"scripts/voice_sheet_check.py"},
+            "short-drama-novel-analyze": {"scripts/novel_index.py"},
         }
         for skill, validator_links in expected.items():
             skill_md = SUITE / "skills" / skill / "SKILL.md"

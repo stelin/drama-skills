@@ -1,0 +1,4 @@
+interface:
+  display_name: "短剧音色提示词"
+  short_description: "把已接受角色的声音方向写成可复制可复用的音色提示词"
+  default_prompt: "使用 $short-drama-voice-prompts 为已接受角色编写可复制的音色与选角提示词。"

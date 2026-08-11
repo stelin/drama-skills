@@ -4,11 +4,12 @@
 
 1. Canonical DAG
 2. Single-owner registry
-3. Stable identities
-4. Relationship fields without circular hashes
-5. Rule classes
-6. Trust and privacy boundaries
-7. Recovery promises
+3. Output language contract
+4. Stable identities
+5. Relationship fields without circular hashes
+6. Rule classes
+7. Trust and privacy boundaries
+8. Recovery promises
 
 ## Canonical DAG
 
@@ -60,6 +61,8 @@ no motion-to-shot or rendered-Markdown-to-spec authority edge.
 | keyframe focal point, composition, camera/lens, frozen staging | storyboard | rendered keyframe prompt is cached |
 | motion order, performance path, camera/audio realization | video-prompts | end report compares with shot out-state |
 | delivery container membership, order, and container duration | video-prompts `delivery-containers.jsonl` | member accepted durations are read-only storyboard projections carrying refs; container duration equals their sum; rendered container text is cached |
+| source analysis layer: chapter index, chapter extraction, story units, entity candidates, adaptation value, episode candidates | novel-analyze `项目开发/原著分析/` | candidates only; develop turns accepted ones into the adaptation map and contract, and may overturn any of them |
+| copyable timbre prompt projected from accepted voice identity | voice-prompts `设定集/voice-prompt-specs.jsonl` | binds the exact `voice_direction` fields it projects; rendered Markdown is cached; identity stays with assets and per-line delivery stays with write |
 | finding, verdict, revision request | review | evidence points to reviewed artifact/hash |
 | input-reference or generated-result production observation | creator or authorized observer in project-private evidence | exact project/prompt/spec/reference slots/config only; review may diagnose and route a bounded revision, never generalize it automatically |
 | lifecycle, transactions, snapshots | shared core | metadata and hashes only |
@@ -67,6 +70,40 @@ no motion-to-shot or rendered-Markdown-to-spec authority edge.
 Shot boundary owns start/end position, pose, gaze, hands, held props, and visible
 continuity. Keyframes project those facts; they never override them. Motion end is
 a comparison report, not a second end-state authority.
+
+## Output language contract
+
+Two fields, deliberately separate:
+
+| Field | Governs | Default |
+|---|---|---|
+| `short-drama.json#/language` | every artifact a creator reads: screenplay, briefs, analysis, review notes, status text, Dashboard | `zh-CN` |
+| `short-drama.json#/format/prompt_language` | prompt bodies handed to image, video and voice generators | `en` |
+
+Both are validated for well-formedness at `init` and reported by `status`, so a
+skill reads them instead of assuming a default. Malformed tags are refused at
+`init` rather than at use: nothing downstream re-checks the value, so an
+unchecked tag would propagate into every artifact that claims to follow it.
+
+The split exists because the two audiences fail differently. A creator reading
+Chinese wants Chinese; most generators render English prompt text most
+reliably. Collapsing the fields would make "show me this in English" silently
+change what a character speaks, and "write this project in Korean" silently
+degrade every prompt.
+
+Three rules:
+
+- **Creator-facing text follows `language`.** No skill hardcodes a language for
+  content a creator reads. Where a creator states a different preference in
+  conversation, that preference wins for that exchange and does not rewrite the
+  project field.
+- **Prompt bodies follow `prompt_language`.** A creator may set it to the
+  project language; the suite does not silently override that choice, and does
+  not claim a quality result either way.
+- **Spoken or depicted language is neither of these.** What a character speaks
+  comes from the accepted character record (`voice_direction.language`), and
+  readable on-screen text comes from the accepted text policy. Changing a
+  description language never changes depicted content.
 
 ## Stable identities
 
