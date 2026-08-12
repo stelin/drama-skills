@@ -1,7 +1,7 @@
 # 关键场景 Coverage Audition
 
 Coverage audition 在正式 shots 前比较真正不同的导演方案，避免第一种合理做法直接成为唯一答案。
-它不是固定镜头数、固定宫格或自动变体器；创作者选择之后才投影为正式场次视觉计划和 shots。
+它不是固定镜头数、固定宫格或自动变体器；创作者选择之后才转写为正式场次视觉计划和 shots。
 
 ## 什么时候比较
 
@@ -20,13 +20,13 @@ Coverage audition 在正式 shots 前比较真正不同的导演方案，避免�
 - **声音中心**：让画外声、环境撤出或留白先改变权力，再决定何时给画面确认。
 
 这些是比较方向，不是每场必须生成的套餐。若两项方案的观众知情时机、对齐对象、表演空间、
-最强画面和结尾落点都相同，它们仍是同一个方案。
+最强画面和结尾结果都相同，它们仍是同一个方案。
 
 ## 比较记录
 
 使用 `assets/coverage-audition.example.jsonl`，用真实的 screenplay-index `BLK-…` 记录绑定场次，
 并绑定已接受视觉方向、制作形态、Location/View 与参与资产；逐方案回答：观众何时知道什么、
-站在哪一边、谁拥有表演空间、最强画面与最终落点、可能丢失的空间/反应/信息、与制作形态是否
+站在哪一边、谁拥有表演空间、最强画面与最终结果、可能丢失的空间/反应/信息、与制作形态是否
 相容。保留反对理由，不替创作者选择。
 
 不得固定四宫格、九宫格、二十五宫格或景别比例。宫格只是人工比较界面，不是镜头数量公式。
@@ -36,5 +36,5 @@ candidate `target_hashes`，并额外记录 `selected_audition_record_id` 与 `s
 这样决定不会因写回 audition 而制造 hash 循环。
 
 正式 `scene_visual_plan` 同时绑定已接受的 `source_audition_ref` 与这份决定的
-`creator_selection_ref`，且只能投影 `selected_approach_id` 指向的方案。未选择时 audition 保持候选，
+`creator_selection_ref`，且只能转写 `selected_approach_id` 指向的方案。未选择时 audition 保持候选，
 不能据此发布正式 plan 或 shots。

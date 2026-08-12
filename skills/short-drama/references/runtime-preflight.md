@@ -21,7 +21,7 @@ python3 <core>/scripts/project_tool.py recover <project>
 python3 <core>/scripts/project_tool.py status <project>
 ```
 
-`recover` 可重复执行。若它报告 blocked，保持创作者文件原样并先处理冲突；不要绕过 WAL、手改状态文件或假定上次写入成功。`status` 中的 accepted/candidate 指针和阻断项是后续工作的当前事实。
+`recover` 可重复执行。若它报告 blocked，保持创作者文件原样并先处理冲突；不要绕过 WAL（预写事务日志）、手改状态文件或假定上次写入成功。`status` 中的 accepted/candidate 指针和阻断项是后续工作的当前事实。
 
 同时读取 `status.layout`。`mode=canonical` 使用返回的中文 `roots`，`mode=legacy`
 使用返回的旧版英文 `roots`；`mode=mixed` 时停止发布，先合并平行目录。所有负责技能都沿用
@@ -35,6 +35,6 @@ python3 <core>/scripts/project_tool.py status <project>
   候选预览链，后者在接受前必须已由同 hash 的上游接受快照闭合。
 - 创作者接受、独立审查和内容修订是不同动作；审查者发布 finding/verdict，不改负责人的来源。
 - 每次修订后重新运行适用的结构校验，并让下游刷新旧 hash。
-- `package` 是最终文本/JSON 交付闸门，不是接受或审查命令；任何阻断项仍在时不打包。
+- `package` 是最终文本/JSON 交付关卡，不是接受或审查命令；任何阻断项仍在时不打包。
 
 完整命令参数见 [lifecycle-commands.md](lifecycle-commands.md)，权威边界见 [contract-and-ownership.md](contract-and-ownership.md)。

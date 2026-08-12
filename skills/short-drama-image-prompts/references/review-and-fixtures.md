@@ -22,8 +22,8 @@
 | 区分度 | 不看 display name，能否认出/区分？ | prompt 中对应 stable anchors 与 delta |
 | 单一目的 | 是否把多种互斥参考需求混在一起？ | purpose、构图与状态一致 |
 | 空间/尺度 | 关系能否同时成立并复用？ | geography/scale 原字段与 prompt 句子 |
-| 文字 | 政策、内容、承载面、排除是否相容？ | text policy 与 constraints |
-| 经济性 | 参考已承载的内容是否被无意义重复？ | 可删句与未受影响事实 |
+| 文字 | 政策、内容、文字表面、排除是否相容？ | text policy 与 constraints |
+| 经济性 | 参考已包含的内容是否被无意义重复？ | 可删句与未受影响事实 |
 | 越权 | 是否新造资产、故事或连续性事实？ | source fact 与冲突句 |
 | 可复制 | 去掉内部元数据后正文是否自足？ | generic prompt 本身 |
 
@@ -39,7 +39,7 @@ Finding 的“修复”必须可执行，例如“补回 View 中安全门相对
 | IMG_VARIANT_INCOHERENT | reviewed_invariant | reviewer | error | image-prompts | 一个规格混入不相容 Look/State |
 | IMG_GEOGRAPHY_LOSS | reviewed_invariant | reviewer | error | image-prompts | 场景固定地理/方向被丢失或改写 |
 | IMG_PROP_UNRECOGNIZABLE | reviewed_invariant | reviewer | error | image-prompts | 尺度、形制、材料、功能不足以辨认 |
-| IMG_BOILERPLATE_DOMINANT | craft_default | reviewer | warning | image-prompts | 已有锚点但泛化词压过它们 |
+| IMG_BOILERPLATE_DOMINANT | craft_default | reviewer | warning | image-prompts | 已有锚点但笼统的词压过它们 |
 | IMG_STYLE_ALTERNATIVE | taste_option | reviewer | note | image-prompts | 可选审美方案，不单独阻断 |
 
 只有 validator 可证明的 `structural_invariant` 直接阻断。语义问题由 reviewer 引用源字段和 prompt 文句后给 `REVISE`；默认与选项可覆盖。

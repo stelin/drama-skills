@@ -80,7 +80,7 @@ Creator 可用制作原因覆盖，例如需要逐件审批背景陈设；记录
 分开记录，不能合成一个 `accepted: true`：build state、structural validation、creator
 acceptance、independent review、delivery gate。
 
-## C2 放行判据
+## C2 放行判断依据
 
 只有当本次范围内：结构检查通过；每个 occurrence 已决定；无 unresolved binding；
 continuity 可交接；creator 接受了新增/复用/变体/delta；且独立 review 无阻断 finding，

@@ -39,7 +39,7 @@
         "record_id": "SHOT-<id>",
         "field": "/duration_seconds"
       },
-      "accepted_duration": "<从 accepted_duration_ref 读到的值，投影不改写>",
+      "accepted_duration": "<从 accepted_duration_ref 读到的值，转写不改写>",
       "location_binding_ref": {
         "owner": "short-drama-storyboard",
         "artifact": "剧集/<EP>/storyboard/shots.jsonl",
@@ -87,17 +87,17 @@
 两端互相携带对方的文件 `hash` 会形成循环，任一文件落盘都会改变对方需要写入的 hash，
 永远得不到可发布的稳定快照。文字上写“只读”不能消除哈希环。
 
-要从一个镜头反查它属于哪个容器，扫描容器记录的 `members[]`，不在运动规格里存副本。
+要从一个镜头倒过来查它属于哪个容器，扫描容器记录的 `members[]`，不在运动规格里存副本。
 
 ## 与其他记录的关系
 
 - **运动规格**：每条运动规格仍然只绑定一个 `shot_ref`，且不感知容器的存在。
 - **渲染文本**：`video-prompts.md` 的容器一节由本记录派生，是缓存，不是权威；文本与本
   记录不一致时以本记录为准。
-- **成员时长**：一律是分镜的只读投影。要改时长就改分镜，然后重算 `container_duration`；
+- **成员时长**：一律是分镜的只读副本。要改时长就改分镜，然后重算 `container_duration`；
   不得在容器里直接改数。
-- **成员资格判据**：语义部分见 `references/delivery-profile.md` 的多镜容器成员资格；
-  本文件只负责让判据的结论可被引用与核对。
+- **成员资格判断依据**：语义部分见 `references/delivery-profile.md` 的多镜容器成员资格；
+  本文件只负责让判断依据的结论可被引用与核对。
 
 复制后删除不适用的可选字段。容器不跨越已接受的场次或时间跳跃；省略、闪回分支与声明过的
 蒙太奇各自单独成容器。

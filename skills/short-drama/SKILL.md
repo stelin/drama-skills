@@ -19,13 +19,15 @@ license: MIT
 2. 从本技能安装目录找到同一套件的其他技能，读取 `suite-manifest.json`；缺少技能或版本混用时先停止变更。
 3. 只读 `short-drama.json` 与 `.short-drama/state.json` 摘要；不要一次加载全部创作文件。
 4. 执行 `status` 或写入前先运行事务恢复。发现外部编辑冲突时保留原文件，提供
-   `adopt`、`restore`、`merge` 三种处理，不静默覆盖。
+   `adopt`、`restore`、`merge` 三种处理，不悄悄覆盖。
 5. 按创作者当前任务路由；不强制补走整条流水线。
 
 入口、检查点、修订和交付见 [creator-workflow.md](references/creator-workflow.md)。
 每次入口先执行 [runtime-preflight.md](references/runtime-preflight.md)，统一验证安装、恢复事务并读取项目状态。
 所有权、文件过期标记 `stale`、隐私或恢复有疑问时读
 [contract-and-ownership.md](references/contract-and-ownership.md)。
+不认识某个字段名或状态值时查 [glossary.md](references/glossary.md)；这些词是稳定标识，
+只作解释，不在正文里替换。
 意图含混时读 [routing-examples.md](references/routing-examples.md)。
 只在需要把规则 ID 定位到负责技能时读
 [knowhow-index.md](references/knowhow-index.md)；路由只负责分派，不代替创作技能判断。
@@ -42,7 +44,7 @@ license: MIT
 |---|---|
 | 开发点子、故事承诺、系列、分集地图 | `$short-drama-develop` |
 | 导入小说/长材料并做可追溯分集与资产候选预览 | `$short-drama-novel-analyze` → `$short-drama-develop` → 接受改编/分集 → `$short-drama-write` → 接受剧本 → `$short-drama-assets` |
-| 判断一本长篇值不值得改、先看抽样快评 | `$short-drama-novel-analyze` |
+| 判断一本长篇值不值得改、先看抽样快速评估 | `$short-drama-novel-analyze` |
 | 写/改单集契约、因果节拍、剧本 | `$short-drama-write` |
 | 拆人物/造型、地点/视图、道具/状态 | `$short-drama-assets` |
 | 写人物/地点/道具/局部修改的图片提示词 | `$short-drama-image-prompts` |
@@ -178,4 +180,4 @@ Markdown 作为文稿阅读和编辑；结构化数据转换为卡片；图片�
 - 运行时不检索外部或非公开生产来源。
 - 不把别处见过的案例提升为创作定律。
 - 负责人不能审查自己的产物。
-- 语义冲突不静默修复。
+- 语义冲突不悄悄修复。

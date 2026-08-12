@@ -26,10 +26,10 @@ Finding 必须含 artifact/hash、引用片段、影响、required fix、owner�
 | Environment | 是否只动了有依据的环境，未发明天气/事件？ | accepted continuity + environment |
 | Dialogue/audio | exact refs、`speaker_ref`、可选 `voice_direction_ref`、VO/OS/SFX 与本场 delivery 是否分别保持？ | source audio fields + character voice direction + prompt |
 | End fidelity | reported end 是否逐项等于 continuity out？ | end report + source end |
-| Economy | frame 已承载外观是否被无谓倾倒？ | reference contents + copy block |
+| Economy | frame 已包含外观是否被无谓倾倒？ | reference contents + copy block |
 | Shot boundary | 是否偷改 duration/end/next shot，或在单个镜头内部藏未声明的 cut？ | source shot + motion |
 | Segment integrity | 每个计时段是否只有一个连续视角？各段相加是否正好等于**所属镜头**的已接受时长？ | segment 列表 + accepted shot duration |
-| Container arithmetic | 容器承载了哪些已接受镜头？容器时长是否等于成员时长之和？成员是否顺序连续、同一绑定链、不跨场次、各自可单独审查？ | container 成员列表 + 各镜 accepted duration |
+| Container arithmetic | 容器收录了哪些已接受镜头？容器时长是否等于成员时长之和？成员是否顺序连续、同一绑定链、不跨场次、各自可单独审查？ | container 成员列表 + 各镜 accepted duration |
 | Deliverable text | 交付文本里是否只剩要拍的画面内容，没有文件名、版本号、锁定标记、草图指代或任务备注？ | prompt 正文 |
 
 语义 finding 的修复应指出删/改哪一段 motion，或该向哪个 owner 发 revision request，而不是笼统说“动作自然一点”。
@@ -130,7 +130,7 @@ Reviewer 应引用房间距离、物件操作、对白和 landing 说明不可�
 外景段落；不能靠补一个转场词把它说圆。
 
 注意与多镜容器区分：容器内**成员镜头之间**的空间与主体跳变是已申报的剪辑，不是缺陷。
-判据是跳变落在哪里——落在成员镜头边界上，且该边界能追溯到一个已接受镜头，就成立；落在
+判断依据是跳变落在哪里——落在成员镜头边界上，且该边界能追溯到一个已接受镜头，就成立；落在
 某个成员镜头的计时段内部，就是段内藏切。容器时长与成员时长之和不符时另记一条容器算术
 缺陷，不要把两者混成同一条 finding。
 
@@ -154,5 +154,5 @@ Reviewer 应引用房间距离、物件操作、对白和 landing 说明不可�
 
 三段都只有内心活动，没有一件可拍的事。没有可执行内容时，执行端会自行发明动作与表情
 去填满时间，结果与剧本无关。修复是让每段至少落到一个可见事件（目光、接触、位移、决断
-动作）或一段有来源的声音；确实需要内心过程时，用已接受的画外音承载，并写清它与画面
+动作）或一段有来源的声音；确实需要内心过程时，用已接受的画外音承担，并写清它与画面
 事件的相对时机。内心独白本身不是缺陷，把它当作整条提示词的唯一内容才是。

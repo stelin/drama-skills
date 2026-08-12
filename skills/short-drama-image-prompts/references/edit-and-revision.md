@@ -11,7 +11,7 @@ continuity impact。如果期望变更会改写 identity 或 accepted 上游事�
 1. 两类修改
 2. Edit-delta 配方
 3. 自然语言 spec → diff → accept → rerender
-4. 缓存漂移的 restore/adopt
+4. 缓存走样的 restore/adopt
 5. 失败与检查
 
 ## 1. 两类修改
@@ -83,7 +83,7 @@ Continuity impact：预期对应哪个 accepted State/binding，有效到哪里�
 
 对“更有电影感”不能擅自选择一串风格字段。给两三个互斥但可解释的候选（如更明确光比/构图/色彩关系），标为 `taste_option` 让创作者选。
 
-## 4. 缓存漂移的 restore/adopt
+## 4. 缓存走样的 restore/adopt
 
 `image-prompts.md` 是缓存视图。发现它与 spec + recipe hash 不一致时暂停覆盖：
 
@@ -91,7 +91,7 @@ Continuity impact：预期对应哪个 accepted State/binding，有效到哪里�
 
 - 展示当前手改文本与将恢复的 canonical preview；
 - 创作者接受后从 accepted spec 重渲染；
-- 不把手改内容静默写回 spec。
+- 不把手改内容悄悄写回 spec。
 
 ### Adopt
 
@@ -107,7 +107,7 @@ Continuity impact：预期对应哪个 accepted State/binding，有效到哪里�
 ### 失败征兆
 
 - 直接改 accepted JSONL 或只改 Markdown；
-- diff 只写“优化措辞”，没有字段和语义影响；
+- diff 只写“优化用词”，没有字段和语义影响；
 - 把身份、Location 地理、道具状态 在 prompt 层擅自改掉；
 - edit 只有 Change 没有 Preserve；
 - unmapped 手改被自动丢弃；拒绝后文件仍改变。

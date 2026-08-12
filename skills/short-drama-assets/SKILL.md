@@ -27,7 +27,7 @@ license: MIT
   已接受的身份、地理、持物归属、可读文字政策或故事状态。
 - 只拥有 Character/Look、Location/View、Prop/State、occurrence reconciliation
   和资产状态 delta。知识/信念/目标/关系/情绪等 story-state 可以在连续性
-  ledger 中被追踪，但只是带 write/develop source pointer 的投影，不是 assets
+  ledger 中被追踪，但只是带 write/develop source pointer 的转写，不是 assets
   的第二份真相。剧本语义归 `short-drama-write`，镜头手位/走位归
   `short-drama-storyboard`，图片提示词归 `short-drama-image-prompts`。
 - 可直接接收现成剧本，不强迫补创意开发、故事引擎或集纲。
@@ -108,7 +108,7 @@ license: MIT
 为交接所需的资产状态变化记录 before、after、剧本原因、开始/结束边界和受影响 binding。
 重点检查造型/伤势、持物/所有权、道具状态、地点时段/天气/光态以及跨集 outgoing。
 若为审查需要把知识或关系状态放进 ledger，只保存权威字段的 artifact/hash/
-field pointer 及必要投影；修订仍路由到 develop/write owner。
+field pointer 及必要副本；修订仍路由到 develop/write owner。
 镜头内部姿势、视线、左右手和站位由 storyboard 边界拥有；资产记录只引用，不抢写。
 
 详见 `references/continuity-delta.md` 与 `assets/continuity.example.jsonl`。
@@ -120,7 +120,7 @@ field pointer 及必要投影；修订仍路由到 develop/write owner。
 1. 建议复用（为什么是同一个）；
 2. 建议新增变体（没变什么、变了什么、原因与有效期）；
 3. 建议新增身份（区分它的持久证据）；
-4. 未决项（原文证据、候选、每个选择的下游影响）；
+4. 待定项（原文证据、候选、每个选择的下游影响）；
 5. 连续性变化与需带入下一集的 outgoing。
 
 创作者可逐项接受、改名、合并、拆分或暂缓。**creator acceptance 是独立事实**：
@@ -151,6 +151,6 @@ ID/variant 的提示词、镜头和 review 为 stale；不要重写无关资产�
 ## 完成条件
 
 发布 C2 前使用 `references/asset-review-checklist.md`：来源和引用可解析；每个
-occurrence 有明确 decision；未决项保持未决；身份/变体边界可信；连续性能够从
+occurrence 有明确 decision；待定项保持待定；身份/变体边界可信；连续性能够从
 incoming 走到 outgoing；创作者已经接受本次变更。最终 approval 必须交给
 `short-drama-review`，本 skill 只修订自己拥有的资产事实。

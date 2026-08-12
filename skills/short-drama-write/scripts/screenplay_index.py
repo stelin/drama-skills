@@ -66,7 +66,7 @@ ANY_TAG_RE = re.compile(r"^\[(?P<tag>[^\]\r\n]+)\]")
 # the durable cross-artifact reference; only the diagnosis is added.
 # The lookahead keeps dialect dialogue on the dialogue path. The dialect writes
 # the performance cue with ASCII parens and a full-width colon
-# (【角色名】(表演括注)：台词, production-format-dialect.md), so both paren
+# (【角色名】(表演括号提示)：台词, production-format-dialect.md), so both paren
 # styles must be exempted here.
 FULLWIDTH_TAG_RE = re.compile(
     r"^【(?P<tag>[^】\r\n]+)】"
@@ -384,7 +384,7 @@ def _parse_screenplay(
 
         # Diagnosed last, so only paragraphs that would already be plain action
         # are reported. Anything a dialect writes with a colon (【音效：…】,
-        # 【角色名】(括注)：台词) has been claimed by the dialogue paths above
+        # 【角色名】(括号提示)：台词) has been claimed by the dialogue paths above
         # and keeps main's disposition, and the block is still emitted here, so
         # no block ID moves in either direction.
         fullwidth_tag = FULLWIDTH_TAG_RE.match(paragraph)

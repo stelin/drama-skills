@@ -108,7 +108,7 @@
     "source_mode": "exact_readable | graphic_only | no_readable_text | pending_creator_text",
     "render_treatment": {
       "mode": "readable | symbolic | blank | postproduction",
-      "surface": "<承载面>",
+      "surface": "<文字表面>",
       "exact_text": "<仅 readable 且来自接受源时填写>",
       "layout_or_reserved_area": "<方向/区域/行数>"
     },

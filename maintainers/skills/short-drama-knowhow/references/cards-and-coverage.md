@@ -18,7 +18,7 @@
 `evidence` 记录能复核的位置与观察，不记录可识别原文。`counterevidence` 即使为空也必须解释寻找范围。
 先按项目实际存在的层还原 `version_refs`，只记录读到的版本引用，并把缺层放进 `missing_layers`；
 再判断每层记录的 `source_role`：创作来源、
-派生投影、修改请求、执行任务或结果证据不能互相冒充。`creator_overrides` 单列，避免把创作者的明确取舍
+派生副本、修改请求、执行任务或结果证据不能互相冒充。`creator_overrides` 单列，避免把创作者的明确取舍
 误读成系统规律。提示词存在、任务成功或提交次数只说明
 流程活动，不能填进 `observation_evidence` 冒充效果证明。
 
@@ -72,7 +72,7 @@ evidence:
   unknowns: []
 ```
 
-共通头部的 `evidence.direct_observations` 只记录文本、记录版本和层间投影链；媒体尾段里的
+共通头部的 `evidence.direct_observations` 只记录文本、记录版本和层间转写链；媒体尾段里的
 `observation_evidence.direct_observations` 只记录授权观察者在所列区域或时间段实际看见/听见的现象。
 不要把同一句发现复制到两处，也不要用后者保存任务状态、提示词摘要或因果解释。
 

@@ -4,7 +4,7 @@
 
 1. Independence and target freeze
 2. Mechanical-before-taste pass
-3. Evidence anatomy
+3. Evidence structure
 4. Cross-layer synthesis
 5. Revision and re-review
 6. Anti-template review
@@ -84,7 +84,7 @@ Semantic examples requiring review:
 - escalation merely repeats humiliation louder;
 - a prompt is specific but preserves the wrong identity.
 
-## Evidence anatomy
+## Evidence structure
 
 A valid finding contains:
 

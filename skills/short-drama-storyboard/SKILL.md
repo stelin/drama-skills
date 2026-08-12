@@ -43,8 +43,8 @@ license: MIT
 
 - 竖屏多人、单房对白、证据揭示、群体轴线或门内外视角：
   [blocking-playbooks.md](references/blocking-playbooks.md)
-- 需要查看“剧本 → 原文落实 → 镜头 → 关键帧”的完整正例，或对白表演括注
-  `（情绪）` 怎样同源投影到本镜表演状态与下游 `delivery`：
+- 需要查看“剧本 → 原文落实 → 镜头 → 关键帧”的完整正例，或对白表演括号提示
+  `（情绪）` 怎样同源转写到本镜表演状态与下游 `delivery`：
   [screenplay-to-keyframe-example.md](references/screenplay-to-keyframe-example.md)
 
 ## 工作流
@@ -67,9 +67,9 @@ license: MIT
 
 只有导演选择明显改变体验时才增加本层。若存在多种真正不同的观看方法，先用
 [coverage-audition.example.jsonl](assets/coverage-audition.example.jsonl) 比较信息时机、对齐对象、
-表演空间、最强画面、落点、损失和制作相容性；创作者选择后，再用
+表演空间、最强画面、结果、损失和制作相容性；创作者选择后，再用
 [scene-visual-plan.example.jsonl](assets/scene-visual-plan.example.jsonl) 把所选方法写成整场的戏剧转向、
-观众立场、空间压力、视觉推进、摄影节奏、反应落点与声音策略。只有一个明确方法时直接写计划，
+观众立场、空间压力、视觉推进、摄影节奏、反应位置与声音策略。只有一个明确方法时直接写计划，
 不为流程完整补 audition。
 
 这层不新增剧本/资产事实，也不拥有 shot purpose、duration 或 start/end boundary。普通场景跳过；
@@ -90,7 +90,7 @@ license: MIT
 证据或反应。
 
 之后才选择景别和摄影机行为。镜头不是给动作段落加几个摄影形容词。
-若本场有已接受视觉计划，每镜用准确 `scene_visual_plan_ref` 说明自己投影其中哪一段变化；
+若本场有已接受视觉计划，每镜用准确 `scene_visual_plan_ref` 说明自己转写其中哪一段变化；
 只在这类镜头记录中新增该字段。普通场景完全省略；计划与来源冲突时退回负责人，不靠 shot 覆盖。
 
 ### 4. 绑定空间和资产
@@ -140,9 +140,9 @@ license: MIT
 
 先做原文落实、参考图权限和连续性的结构检查，再按制作资料自检。
 候选预览也必须精确加总逐镜数值时长；若仍有未定时长或尚未完成这笔账，宁可省略总时长并
-列出未决项，也不要写一个与镜头表不一致的约数。
+列出待定项，也不要写一个与镜头表不一致的约数。
 
-时长账目与关键帧边界这两项是纯记账，交给
+时长账目与关键帧边界这两项是纯登记，交给
 [storyboard_check.py](scripts/storyboard_check.py) 核对，不要用人工目测代替：
 
 ```bash
@@ -163,11 +163,11 @@ python3 <skill-dir>/scripts/storyboard_check.py 剧集/EP001/storyboard/coverage
 
 候选选择清单必须覆盖正文中全部新增导演选择；没有必要让创作者判断的环境微动、具体手位或
 声音时机就删除，不能一面写进可执行提示词，一面在接受摘要中省略。
-摘要按选择类别总括本场全部新增的观众立场/信息时机、代表帧/最强画面/场尾落点、
+摘要按选择类别总括本场全部新增的观众立场/信息时机、代表帧/最强画面/场尾结果、
 机位/景别/运动与停留、时长/节奏、手势/目光/表演信号、声音进入/撤出/留白与视觉处理，
 并声明“正文中未由来源接受的执行选择仍全部保持候选”，
 不逐镜复述已经清楚标注的细节。只点名会改变信息时机、因果顺序、观众立场或表演所有权、
-可读文字、场尾落点、制作成本或回退路径的高影响例外；正文新增项若既不在类别范围内也未被点名，
+可读文字、场尾结果、制作成本或回退路径的高影响例外；正文新增项若既不在类别范围内也未被点名，
 就删除或补入摘要。总括是接受范围，不会把正文选择悄悄升级为已接受事实。
 
 若创作者尚未声明交付面遮挡区，内容构图仍可作为候选比较，但播放面避让核验保持 `blocked`，
@@ -207,7 +207,7 @@ python3 <skill-dir>/scripts/storyboard_check.py 剧集/EP001/storyboard/coverage
 
 - `剧集/<EP>/storyboard/coverage.json`
 - `剧集/<EP>/storyboard/coverage-auditions/<SC>.jsonl`（仅关键场次需要比较方案时；每场独立接受，项目工作历史，
-  默认不进执行交付包；accepted 后打包时显式传 `--omit`，不会按文件名静默排除）
+  默认不进执行交付包；accepted 后打包时显式传 `--omit`，不会按文件名悄悄排除）
 - `剧集/<EP>/storyboard/scene-visual-plans/<SC>.jsonl`（仅关键场次需要场次计划时；每场独立接受）
 - `剧集/<EP>/storyboard/shots.jsonl`
 - `剧集/<EP>/storyboard/keyframes.jsonl`

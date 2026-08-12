@@ -37,10 +37,10 @@ license: MIT
 
 只读对应的审查表。`source_analysis` 读
 [rubric-source-analysis.md](references/rubric-source-analysis.md)——它审的是原著分析层
-（索引、快评、逐章提取、剧情单元、人物候选、改编价值与分集候选），不审剧本内容，
+（索引、快速评估、逐章提取、剧情单元、人物候选、改编价值与分集候选），不审剧本内容，
 也不替 `$short-drama-develop` 决定改编方案。完整审查先读
 [review-method.md](references/review-method.md)，再读三份审查表；制作端常见缺陷
-与各环节判据见 [production-quality-gates.md](references/production-quality-gates.md)。
+与各环节判断依据见 [production-quality-gates.md](references/production-quality-gates.md)。
 有创作者提供或授权形成的生产观察，需要绑定准确版本、诊断并路由项目内校准时读
 [project-calibration.md](references/project-calibration.md)；没有观察记录时只报文字风险。
 涉及参考图权限、遮挡式揭示或补拍版与替代版关系时加读
@@ -100,7 +100,7 @@ context 的运行时标识。若当前运行环境不能启动 agent、启动失
 - 必须达到的修订结果，而不是藏在审查问题里的代写稿；
 - 负责技能、严重程度和状态。
 
-校准 finding 还要区分 `input_reference` 与 `generated_result`，绑定准确 prompt/spec、参考槽位、
+校准 finding 还要区分 `input_reference` 与 `generated_result`，绑定准确 prompt/spec、参考字段、
 制作配置与观察限制，并给出 `change_set` / `preserve_set`；它只在该项目与版本条件下有效。
 
 分类必须使用：

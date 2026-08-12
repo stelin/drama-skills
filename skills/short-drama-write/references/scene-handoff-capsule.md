@@ -21,13 +21,13 @@ scene_handoff_capsule:
   current_scene:
     scene_id: EPxxx-SCxxx
     agenda: 当前人物正在争取什么
-    opposition: 谁/什么正在反制
+    opposition: 谁/什么正在反击
     turn: 刚发生的方向变化
     exit_state: 场景结束后谁能做什么、不能做什么
   changed_state:
     story: [知识/关系/权力/风险/决定的变化]
     physical: [位置/持物/伤势/造型/环境的变化]
-  setup_debt: [仍待兑现或明确放弃的 setup ID/ref]
+  setup_debt: [仍待回报或明确放弃的 setup ID/ref]
   information_permissions: [谁知道/误信/怀疑什么，观众此刻能知道什么]
   next_scene_pressure: 下一场由哪个已发生结果发动
   tail_locator: {block_id: <last-accepted-block>, content_sha256: <hash>}

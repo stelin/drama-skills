@@ -54,7 +54,7 @@ Fresh agent 不得读取私有来源、observation/decision cards、去标识映
 
 Reviewer 针对具体证据比较，不靠总分自动胜出：
 
-- `dramatic_reasoning`：期待、阻碍、行动、信息变化与兑现是否构成可解释因果；
+- `dramatic_reasoning`：期待、阻碍、行动、信息变化与回报是否构成可解释因果；
 - `character_agency`：人物是否用符合处境的可表演行动推进，而非被机制搬运；
 - `genre_transfer`：是否服务当前题材/受众承诺，而非复制单一题材表皮；
 - `boundary_judgment`：在反例或不适用语境能否换法、缩窄或拒绝套用；

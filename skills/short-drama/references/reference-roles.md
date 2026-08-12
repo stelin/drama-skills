@@ -38,7 +38,7 @@
 | `unverified` | 只有 JSON 或文字描述，媒体不可见或没有授权 | **不得**声称像素、文字、水印或裁切已通过 |
 
 前两种都要绑定准确的 `reference_observation_ref`，记录所看文件的 `hash`、检查区域、
-文字处理结论、检查方式与未决风险，格式见
+文字处理结论、检查方式与待定风险，格式见
 [reference-observation.example.jsonl](../assets/reference-observation.example.jsonl)。
 
 ### 两种观察不能混成一条
@@ -48,7 +48,7 @@
 若创作者另行提供某个准确提示词/规格版本下的授权**生产**观察，用独立的
 [production-observation.example.jsonl](../assets/production-observation.example.jsonl)，写
 `observation_kind: generated_result`、`evidence_state: active`，并绑定 prompt/spec、
-稳定参考槽位与制作配置。
+稳定参考字段与制作配置。
 
 `evidence_state: active` 只表示这份证据仍可使用，**不表示产物通过或被接受**。
 
@@ -72,7 +72,7 @@
 | `scale` | 主体之间或主体与环境的相对尺度 | 风格、身份、数量、动作结果 |
 | `effect` | 已接受效果的形态、范围或材质表现 | 非目标对象的消失、复制或变形 |
 | `start_frame` | 本镜已接受的起始构图与可见状态 | 尚未发生的动作、终态或下一镜事实 |
-| `end_frame` | 本镜 `end_boundary` 已接受的投影 | 新终点、未由镜头承担的动作结果 |
+| `end_frame` | 本镜 `end_boundary` 已接受的只读副本 | 新终点、未由镜头承担的动作结果 |
 | `style` | 色彩层级、材质处理、阴影边缘、景深倾向、画面密度 | 角色身份、固定地理、剧情状态、道具文字 |
 
 "只参考构图"是有效而且重要的边界：可以借用前景/背景占比和压迫关系，同时明确不导入图中
@@ -115,11 +115,11 @@
 - **同一段运动的起止边界**：见下。
 
 每条绑定使用稳定 `slot_id` 和显式 `order`。数组重排、插入新参考或联系表换版时**不得改变
-已有槽位的语义**——重排不会报错，只会拍错。固定九宫格也不是叙事密度公式，格间顺序不能
+已有字段的语义**——重排不会报错，只会拍错。固定九宫格也不是叙事密度公式，格间顺序不能
 替代独立镜头的起止边界。
 
 首尾帧契约是"**默认 start，按需 end**"：关键帧默认 `boundary_role: start`。执行方式确实需要
-首尾帧时，storyboard owner 可以增加 `boundary_role: end` 的关键帧；它只投影同一镜头已接受的
+首尾帧时，storyboard owner 可以增加 `boundary_role: end` 的关键帧；它只转写同一镜头已接受的
 `end_boundary`，**不是第二个终点权威**，也不能从动作说明自行发明。视频提示词可按
 `role: end_frame` 只读绑定这条记录，终点报告仍然对照 shot 的 `end_boundary`。
 
@@ -130,7 +130,7 @@
 1. 引用、`authority`、`hash` 能否解析；
 2. 每条绑定的用途、可借用内容、不可照搬内容是否写清；
 3. 观察记录是否存在，没有证据是否老实保持 `unverified`；
-4. 最后才评价措辞与审美。
+4. 最后才评价用词与审美。
 
 不要用引用数量、固定裁切方式、关键词清单或提示词长度代替这些判断，也不要从文字规格声称身份或特效
 在真实成片里已经成功。

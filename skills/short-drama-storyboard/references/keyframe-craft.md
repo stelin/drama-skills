@@ -55,7 +55,7 @@ replace the source wording or policy with an untraceable prose instruction.
 镜头 `end_boundary` 各说各话。
 
 **`structural_invariant`**：关键帧记录必须声明 `boundary_role`（`start` 或 `end`），
-`boundary_ref` 指向同一镜头对应的那个边界字段。**尾帧是 `end_boundary` 的投影，
+`boundary_ref` 指向同一镜头对应的那个边界字段。**尾帧是 `end_boundary` 的转写，
 不是新的终点事实**——它与首帧对 `start_boundary` 的关系完全一样：可以决定这一帧怎么构图、
 用什么景别镜头、光怎么落，不能决定人在哪、手里有什么、看着谁。尾帧与镜头终点不一致时，
 错的是尾帧。
@@ -66,20 +66,20 @@ replace the source wording or policy with an untraceable prose instruction.
 
 **代价要说清楚：交出一对首尾帧，等于把两帧之间的运动交给了执行端插值。** 而运动路径本来
 是运动规格拥有的东西。所以选了首尾帧接续的镜头，其运动规格不是"照旧再写一遍"，而是被
-两端夹住了：它仍然要写清中间必须发生什么（动作顺序、对白落点、摄影机行为），但要意识到
+两端夹住了：它仍然要写清中间必须发生什么（动作顺序、对白位置、摄影机行为），但要意识到
 执行端会优先满足两端的画面一致性。因此——
 
-- 中间必须被看到的动作**不要只靠插值兑现**。如果一个动作是本镜存在的理由，两端之间没有
+- 中间必须被看到的动作**不要只靠插值实现**。如果一个动作是本镜存在的理由，两端之间没有
   任何东西保证它会发生，就该拆镜，或者让该动作落在其中一端。
 - 两端差异越大，插值越自由，中间越不可控。首尾帧接续适合"状态改变清楚、路径无所谓"的
   镜头（转身、递交完成、坐下），不适合"路径本身是戏"的镜头。
-- 终点报告仍然对照镜头 `end_boundary`，不对照尾帧。尾帧只是它的投影，不能自证到达。
+- 终点报告仍然对照镜头 `end_boundary`，不对照尾帧。尾帧只是它的转写，不能自证到达。
 
 ## Start-only drafting discipline
 
 **`SHT-10 · reviewed_invariant`**: rendered keyframe prose may contain only facts
-from the boundary that frame declares. 首帧写进任何由运动或终点首次产生的事实是漂移；
-尾帧写进在它之前就已经消耗掉的事实同样是漂移。两帧各守各的边界，不互相借用。
+from the boundary that frame declares. 首帧写进任何由运动或终点首次产生的事实是走样；
+尾帧写进在它之前就已经消耗掉的事实同样是走样。两帧各守各的边界，不互相借用。
 
 Keyframe 默认是 shot start，不是“本镜最有戏的时刻”。为避免把 end 提前：
 
@@ -87,7 +87,7 @@ Keyframe 默认是 shot start，不是“本镜最有戏的时刻”。为避免
 2. 只填 start 已成立的 position/pose/gaze/hands/held props/visible state；
 3. 再与 end 做“新出现事实”差集；差集中的事实不得出现在 keyframe prompt；
 4. 渲染 Markdown 后从自然语言反向提取手位/持物/目光/可见状态，与
-   structured boundary 再比一次；不能只验 JSON 投影而忽略真正交付的 prompt。
+   structured boundary 再比一次；不能只验 JSON 副本而忽略真正交付的 prompt。
 
 反例：start 是“右手空置、看对方”，end 是“右手握铃绳、看门”。冻结帧写
 “手已握铃绳”即使很好看，也属于 boundary drift。

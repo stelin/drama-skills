@@ -2,7 +2,7 @@
 
 ## Contents
 
-1. Canonical DAG
+1. Canonical DAG (directed acyclic graph)
 2. Single-owner registry
 3. Output language contract
 4. Stable identities
@@ -11,7 +11,7 @@
 7. Trust and privacy boundaries
 8. Recovery promises
 
-## Canonical DAG
+## Canonical DAG (directed acyclic graph)
 
 ```text
 development? -> screenplay.md -> screenplay-index.jsonl
@@ -228,7 +228,7 @@ internal schema field name enters released resources.
 
 Creator source files are never replaced by partial output. Multi-file publishing
 uses a write-ahead manifest, immutable prior/candidate snapshots, per-file
-compare-and-swap, commit marker, and read-before recovery.
+compare-and-swap (read the current bytes, write only if they still match), commit marker, and read-before recovery.
 
 If live bytes are neither the expected prior nor candidate hash, preserve them as
 a conflict and block. Offer adopt, restore, or merge; never overwrite an unknown

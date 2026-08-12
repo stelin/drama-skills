@@ -148,7 +148,7 @@ forecast with project truth.
 4. Show a creator-readable diff and affected downstream artifacts.
 5. Publish only after creator acceptance when the change alters canonical truth.
 6. Freeze the accepted candidate's exact inputs. A new upstream candidate marks the
-   direct and transitive downstream closure stale in its WAL transaction; do not
+   every direct and transitive downstream artifact stale in its WAL transaction; do not
    regenerate or invalidate unrelated work. A path removed from a multi-file target
    set invalidates its dependents even though the old file bytes are preserved for
    recovery and comparison.

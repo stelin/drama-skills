@@ -26,7 +26,7 @@ license: MIT
 
 ### 1. 读取当前真相
 
-确认创作者约束、已接受的上游事实、本集进入状态和待兑现铺垫。若修订已有剧本，引用当前文件而不是凭对话记忆重写。本阶段拥有什么、继承什么见 [阶段契约](references/stage-contract.md)。
+确认创作者约束、已接受的上游事实、本集进入状态和待回报的铺垫。若修订已有剧本，引用当前文件而不是凭对话记忆重写。本阶段拥有什么、继承什么见 [阶段契约](references/stage-contract.md)。
 
 ### 2. 确定单集契约的唯一 owner
 
@@ -45,8 +45,8 @@ diff，让创作者明确选择 authority 迁移，将 standalone 契约标记 s
 单集契约进入本阶段时必须包含哪些字段、缺失时怎么办，见
 [阶段契约](references/stage-contract.md) 的“单集契约与题材边界”。若只做原文规范化，
 跳过本步，不推断缺失剧情。
-从想法或 `write_standalone` 直接写作时，本阶段执行已接受的题材与钩子取向，不自行给项目
-归类题材；没有已接受取向时按同一节的做法处理，不为贴题材标签另造公式。
+从想法或 `write_standalone` 直接写作时，本阶段执行已接受的题材与钩子方向，不自行给项目
+归类题材；没有已接受方向时按同一节的做法处理，不为贴题材标签另造公式。
 
 ### 3. 建立因果节拍
 
@@ -60,21 +60,21 @@ diff，让创作者明确选择 authority 迁移，将 standalone 契约标记 s
 
 若节拍开启新线，明确声明；不要把“然后发生”伪装成“因此发生”。数量与长短服从本集动作，而非统一模板。
 
-关系字段遵守同一约定：同一 `beats.jsonl` 内的前因、铺垫与兑现只写稳定
+关系字段遵守同一约定：同一 `beats.jsonl` 内的前因、铺垫与回报只写稳定
 `because_of_ids`/`setup_ids`/`payoff_ids`，避免自引用文件哈希；来自 episode map、
 前集或其他 owner artifact 的关系写 canonical `because_of_refs`/`setup_refs`/
 `payoff_refs`。`*_refs` 不能放裸 ID、路径字符串或复述文本。
 
 ### 4. 先定场景功能，再写正文
 
-对每个场景先回答：为什么必须存在、谁的议程对撞、哪个可见动作承载冲突、哪里发生方向性变化、退出状态给下游留下什么。需要场景与可见行动方法时读取 [script-craft.md](references/script-craft.md)。
+对每个场景先回答：为什么必须存在、谁的议程对撞、哪个可见动作承担冲突、哪里发生方向性变化、退出状态给下游留下什么。需要场景与可见行动方法时读取 [script-craft.md](references/script-craft.md)。
 
 写对白前读取 [dialogue-craft.md](references/dialogue-craft.md)，尤其检查人物策略、潜台词、信息争夺和声音差异。
 当声源、环境撤出、主动留白、画外存在或相邻场 sound bridge 承担戏剧转向时，读取
 [scene-sound-dramaturgy.md](references/scene-sound-dramaturgy.md)。剧本只拥有故事必需的声音事实，
 不替分镜设计逐镜声轨，也不用配乐替代表演。
 
-创作者指出某个兑现的呈现方式**可能需要更换**时，读取
+创作者指出某个回报的呈现方式**可能需要更换**时，读取
 [substitutable-realization.md](references/substitutable-realization.md)，把功能、当前实现
 与备选实现分开写下来。**不要因此提前磨平任何内容**：先按最想要的拍法写，备选只在真的
 需要时启用。创作者没有标注时不做这一步，也不替创作者预判。
@@ -120,8 +120,8 @@ source issue 的 refs 都保持 candidate；accepted 剧本发布后再以默认
 ### 5b. 需要配音本时（可选）
 
 创作者要为录音准备台词表时，复制
-[voice-record-sheet.jsonl.md](assets/voice-record-sheet.jsonl.md)。它是**剧本的投影，
-不是第二份台词权威**：每行逐字等于对应剧本块并绑定其 `hash`，要改词就改剧本再重新投影。
+[voice-record-sheet.jsonl.md](assets/voice-record-sheet.jsonl.md)。它是**剧本的转写，
+不是第二份台词权威**：每行逐字等于对应剧本块并绑定其 `hash`，要改词就改剧本再重新转写。
 
 录音顺序几乎从不是剧情顺序（通常按人物集中录），配音者失去的正是上下文，所以每行要补
 对谁说、接谁的话、此刻他知道什么、这一句要达成什么。写策略而不是情绪词——"愤怒"不可
@@ -129,7 +129,7 @@ source issue 的 refs 都保持 candidate；accepted 剧本发布后再以默认
 
 不需要录音时不生成这份文件。本套件不生成音频，也不从这份文本判断成品音质。
 
-写完后用 [voice_sheet_check.py](scripts/voice_sheet_check.py) 核对它仍然是投影：
+写完后用 [voice_sheet_check.py](scripts/voice_sheet_check.py) 核对它仍然是只读副本：
 
 ```bash
 python3 <skill-dir>/scripts/voice_sheet_check.py 剧集/EP001/voice-record-sheet.jsonl \
@@ -166,7 +166,7 @@ python3 <skill-dir>/scripts/voice_sheet_check.py 剧集/EP001/voice-record-sheet
   校验器可阻断。
 - **`reviewed_invariant`**：因果是否成立、场景是否真正转向、内心是否可表演、对白是否改变局面，
   以及生产关键事实是否漏标；独立审查者须引用文本证据。
-- **`craft_default`**：进入得晚、退出得早、以选择和后果推动、用具体动作承载情绪；可说明理由覆盖。
+- **`craft_default`**：进入得晚、退出得早、以选择和后果推动、用具体动作承担情绪；可说明理由覆盖。
 - **`taste_option`**：沉默、旁白、方言、打断、场景静动、句式节奏；遵从创作者选择。
 
 不要把统一的爆点安排、转折时刻、台词比例、字数、场景数或节拍数设为质量门槛。

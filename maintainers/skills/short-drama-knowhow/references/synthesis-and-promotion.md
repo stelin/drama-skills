@@ -4,7 +4,7 @@
 
 - 从观察到候选
 - 反例、冲突与边界
-- 去标识与 de-copy
+- 去标识与 de-copy（去复刻）
 - 公共候选包
 - Promotion gate
 - Retire 与回溯
@@ -43,12 +43,12 @@
 不要以多数表决解决矛盾。能够解释差异时写入 `applies_when` 和 `fails_or_changes_when`；
 无法解释时保持 `conflict_pending`，继续目的性选样或拒绝晋升。
 
-## 去标识与 de-copy
+## 去标识与 de-copy（去复刻）
 
 按以下顺序处理候选：
 
 1. 删除连接信息、机器位置、源名称、内部 ID、人员、项目、角色、组织与专有设定。
-2. 删除原句和连续措辞；只保留 agent 对因果、观众状态、动作与制作约束的抽象解释。
+2. 删除原句和连续用词；只保留 agent 对因果、观众状态、动作与制作约束的抽象解释。
 3. 打散罕见的题材 × 人物关系 × 场景 × 道具 × 转折组合，避免组合指纹。
 4. 将数值改为功能描述，除非数值本身是公开格式契约。
 5. 从零设计另一题材、另一关系、另一空间与另一表演动作的合成例子。
@@ -64,7 +64,7 @@
 
 - `reference_proposal`：要解决的问题、条件式 heuristic、适用/失效边界、替代方案；
 - `rubric_proposal`：reviewer 能从公开文本定位的正反证据、误报保护和严重程度建议；
-- `synthetic_fixture_proposal`：全新人物、题材、场景与措辞，包含合格、边界或失败变体；
+- `synthetic_fixture_proposal`：全新人物、题材、场景与用词，包含合格、边界或失败变体；
 - `evaluation_brief`：基线与候选预期差异、可能副作用、应测试的题材迁移；
 - `privacy_attestation`：说明无源名称、原句、连接信息、组合指纹和非必要精确值；
 - `rollback_note`：怎样撤销、缩窄或替换而不破坏其他公共规则。
@@ -78,7 +78,7 @@ Promotion 必须同时满足：
 
 - 证据来自完整项目链的定性阅读，而不是搜索片段或聚合统计；
 - 有能挑战候选的反例、冲突分析和明确适用边界；
-- 候选经过语义抽象、去标识与 de-copy，合成例子无法指回来源；
+- 候选经过语义抽象、去标识与 de-copy（去复刻），合成例子无法指回来源；
 - reference、rubric 和 synthetic fixture 描述同一可观察行为；
 - fresh-agent blind forward eval 显示实际增益，且没有明显模板化或题材污染；
 - 版本链、创作者覆盖、来源角色、`media_observed` 与适用的 `observation_evidence` 均已声明，且未把
