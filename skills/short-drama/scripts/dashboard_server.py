@@ -40,7 +40,22 @@ if sys.version_info < MINIMUM_PYTHON:
 
 TEXT_EXTENSIONS = frozenset({".md", ".json", ".jsonl", ".txt", ".srt", ".ass"})
 MEDIA_EXTENSIONS = frozenset(
-    {".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".webm", ".mov"}
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".gif",
+        ".mp4",
+        ".webm",
+        ".mov",
+        ".wav",
+        ".mp3",
+        ".m4a",
+        ".aac",
+        ".flac",
+        ".opus",
+    }
 )
 MEDIA_TYPES = {
     ".png": "image/png",
@@ -51,6 +66,12 @@ MEDIA_TYPES = {
     ".mp4": "video/mp4",
     ".webm": "video/webm",
     ".mov": "video/quicktime",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
+    ".flac": "audio/flac",
+    ".opus": "audio/ogg",
 }
 DEFAULT_MAX_DEPTH = 8
 DEFAULT_MAX_NODES = 2_000
@@ -676,9 +697,14 @@ class ProjectStore:
             lifecycle = self.project_tool.project_path_lifecycle_at(
                 directory_fd, pure.as_posix()
             )
+        kind = "image"
+        if content_type.startswith("video/"):
+            kind = "video"
+        elif content_type.startswith("audio/"):
+            kind = "audio"
         result = {
             "path": pure.as_posix(),
-            "kind": "video" if content_type.startswith("video/") else "image",
+            "kind": kind,
             "contentType": content_type,
             "size": size,
             "readOnly": True,

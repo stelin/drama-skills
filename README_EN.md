@@ -193,10 +193,10 @@ One line inside your agent (Codex writes `$short-drama dashboard`):
 
 The workspace is a lightweight presentation and limited text-editing layer; core creation
 and production capability stays in the skills, not in a heavy UI workflow. It runs locally
-on macOS/Linux and uses one page: a plain content list on
-the left and an always-visible document on the right. Opening a project loads its
-screenplay immediately; there are no page tabs or pop-up document viewers. Tasks and
-export stay as compact notes below the document, while paths and workflow internals
-remain system-owned.
+on macOS/Linux and uses one page: a compact project overview presents episodes and existing
+image/video/audio results, followed by a plain content list and an always-visible document.
+Opening a project loads its screenplay immediately; there are no provider settings,
+generation controls, page tabs, or pop-up document viewers. Production, review, and export
+remain skill actions, while paths and workflow internals remain system-owned.
 
-<img src="docs/assets/dashboard-zh.png" alt="Short drama creator workspace: content rail on the left, screenplay on the right" width="680">
+<img src="docs/assets/dashboard-zh.png" alt="Short drama creator workspace with project overview, episode progress, existing media, and screenplay" width="680">

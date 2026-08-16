@@ -167,10 +167,12 @@ https://github.com/user-attachments/assets/ae88b444-06e5-4964-856c-91e619020f12
 ```
 
 创作台是内容展示与有限文本编辑层，核心创作和制作能力仍在 skills 中，不承担重型工作流编排。
+首页汇总项目、分集与已有图片/视频/音频，向下仍是直接的内容目录和正文阅读台；投产、复核与
+交付都从对应 skill 发起，不在 Dashboard 配置供应商或提交生成任务。
 它目前仅支持 macOS/Linux；Windows 支持套件安装与命令行项目工具，
 但创作台因安全目录描述符要求会拒绝启动。
 
-<img src="docs/assets/dashboard-zh.png" alt="短剧创作台：左侧内容目录，右侧剧本正文" width="680">
+<img src="docs/assets/dashboard-zh.png" alt="短剧创作台：项目概览、分集进度、已有媒体与剧本正文" width="680">
 
 ## 致谢
 

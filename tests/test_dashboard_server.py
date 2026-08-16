@@ -773,6 +773,31 @@ class ProjectStoreTests(unittest.TestCase):
                 store.open_media(project_id, "clip.mp4")
             self.assertEqual(caught.exception.status, 413)
 
+    def test_audio_outputs_are_browsable_media(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            project = workspace / "show"
+            make_project(project)
+            voice = project / "剧集/EP001/制作成果/tts/LINE001.wav"
+            voice.parent.mkdir(parents=True)
+            voice.write_bytes(b"RIFFvoice")
+            store = self.store(workspace)
+            project_id = store.discover()[0][0]["id"]
+
+            tree = store.tree(project_id)
+            files = {}
+
+            def collect(nodes: list[dict]) -> None:
+                for node in nodes:
+                    if node["type"] == "directory":
+                        collect(node["children"])
+                    else:
+                        files[node["path"]] = node
+
+            collect(tree["tree"])
+            self.assertEqual(files["剧集/EP001/制作成果/tts/LINE001.wav"]["type"], "media")
+            self.assertEqual(store.media_info(project_id, "剧集/EP001/制作成果/tts/LINE001.wav")["kind"], "audio")
+
 
 class DashboardEntrypointTests(unittest.TestCase):
     def test_static_assets_and_project_tool_resolve_inside_installed_skill(
@@ -873,6 +898,7 @@ const paths = [
   "设定集/characters.jsonl",
   "剧集/EP001/assets/image-prompts.md",
   "剧集/EP001/storyboard/shots.jsonl",
+  "剧集/EP001/制作成果/image/SHOT001.png",
   "剧集/EP001/storyboard/coverage.json",
   "剧集/EP001/storyboard/delivery-containers.jsonl",
   "创作者决策/EP001-script.json",
@@ -902,6 +928,7 @@ process.stdout.write(JSON.stringify(paths.map((path) => logic.creatorSection(pat
                 "cast",
                 "prompts",
                 "storyboard",
+                "production",
                 None,
                 None,
                 None,
@@ -909,6 +936,52 @@ process.stdout.write(JSON.stringify(paths.map((path) => logic.creatorSection(pat
                 None,
             ],
         )
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is unavailable")
+    def test_frontend_overview_summarizes_without_owning_production(self) -> None:
+        app = dashboard_server.STATIC_ROOT / "app.js"
+        script = f"""
+const logic = require({json.dumps(str(app))});
+const files = [
+  {{ path: "剧集/EP001/screenplay.md", type: "text" }},
+  {{ path: "剧集/EP001/storyboard/video-prompts.md", type: "text" }},
+  {{ path: "剧集/EP001/制作成果/image/SHOT001.png", type: "media", size: 2048 }},
+  {{ path: "剧集/EP002/screenplay.md", type: "text" }},
+  {{ path: "剧集/EP002/制作成果/tts/LINE001.wav", type: "media", size: 4096 }},
+];
+const overview = logic.projectOverviewModel(files, {{ title: "逆光告白" }});
+process.stdout.write(JSON.stringify({{
+  title: overview.title,
+  episodes: overview.episodes.length,
+  documents: overview.documents,
+  media: overview.media.length,
+  kinds: overview.media.map(logic.mediaKind),
+  stages: overview.episodes.map((episode) => logic.episodePresentation(episode.files).label),
+  size: logic.formatBytes(2048),
+}}));
+"""
+        completed = subprocess.run(
+            ["node", "-e", script], check=True, capture_output=True, text=True
+        )
+        self.assertEqual(
+            json.loads(completed.stdout),
+            {
+                "title": "逆光告白",
+                "episodes": 2,
+                "documents": 3,
+                "media": 2,
+                "kinds": ["image", "audio"],
+                "stages": ["已有媒体", "已有媒体"],
+                "size": "2.0 KB",
+            },
+        )
+
+        index = (dashboard_server.STATIC_ROOT / "index.html").read_text(encoding="utf-8")
+        frontend = app.read_text(encoding="utf-8")
+        self.assertIn('id="mediaGallery"', index)
+        self.assertIn('id="episodeStrip"', index)
+        self.assertNotIn("/api/production", frontend)
+        self.assertNotIn("adapter-config", frontend)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is unavailable")
     def test_frontend_structured_projection_removes_machine_fields(self) -> None:
