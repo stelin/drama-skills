@@ -21,6 +21,20 @@ license: MIT
 或任何其他技能都不是审查工作的阻断条件。[阶段契约](references/stage-contract.md) 给出
 本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
+## Quick Start
+
+复制最小 finding/verdict 样例，在完成一次有界审查 pass 后运行：
+
+```text
+python3 {技能目录}/scripts/review_check.py \
+  --findings examples/minimal-findings.jsonl \
+  --verdict examples/minimal-verdict.json
+python3 {技能目录}/scripts/selftest.py
+```
+
+校验器检查 REV-02 所需字段、证据引用、阻断项数量和 verdict 一致性；它不代替语义审查，也不
+要求独立 reviewer provenance。输入路径不存在于当前目录时，会相对本技能目录解析。
+
 ## 选择审查范围
 
 声明一个或多个范围：

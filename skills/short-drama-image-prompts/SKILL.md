@@ -21,6 +21,18 @@ license: MIT
 core 或任何其他技能都不是提示词工作的阻断条件。[阶段契约](references/stage-contract.md)
 给出本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
+## Quick Start
+
+从本技能的最小原生 JSONL 样例开始，写完当前有界资产集合后运行：
+
+```text
+python3 {技能目录}/scripts/image_prompt_check.py examples/minimal-image-prompt-specs.jsonl
+python3 {技能目录}/scripts/selftest.py
+```
+
+校验器检查准确绑定、稳定 reference slot/order、局部编辑必填项、文字政策冲突和 provider 字段
+泄漏；构图、身份表现和画面质量仍属于内容审查。输入路径不存在于当前目录时，会相对本技能目录解析。
+
 ## 进入条件与边界
 
 - 可从现成项目或创作者直接提供的资产记录进入，不要求先做故事开发或安装主技能。

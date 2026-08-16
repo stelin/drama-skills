@@ -47,6 +47,7 @@ jobs:
           python -B -m unittest
           tests.test_installation_resolution
           tests.test_episode_intake
+          tests.test_standalone_skill_tooling
           tests.test_simple_lifecycle.SimpleLifecycleTests.test_publish_rejects_path_aliases_and_unsafe_episode_ids
           tests.test_simple_lifecycle.SimpleLifecycleTests.test_package_and_verify_selected_approved_text
           -v
@@ -71,6 +72,9 @@ jobs:
           mypy skills/short-drama/scripts/project_tool.py
           skills/short-drama/scripts/dashboard_server.py
           skills/short-drama-develop/scripts/episode_intake.py
+          skills/short-drama-assets/scripts/asset_check.py
+          skills/short-drama-image-prompts/scripts/image_prompt_check.py
+          skills/short-drama-review/scripts/review_check.py
           --ignore-missing-imports
       - uses: actions/setup-node@v4
         with:

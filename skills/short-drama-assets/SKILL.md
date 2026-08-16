@@ -17,6 +17,20 @@ license: MIT
 或任何其他技能都不是资产拆解的阻断条件。[阶段契约](references/stage-contract.md) 给出
 本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
+## Quick Start
+
+先复制 `examples/minimal/` 的原生 Character/Look JSONL，再修改为当前资产。发布前运行：
+
+```text
+python3 {技能目录}/scripts/asset_check.py \
+  --characters examples/minimal/characters.jsonl \
+  --looks examples/minimal/looks.jsonl
+python3 {技能目录}/scripts/selftest.py
+```
+
+校验器只检查稳定 ID、来源引用、创作者接受状态与 Look → Character 绑定；身份是否可信、差异
+是否有戏剧依据仍由创作者和 reviewer 判断。输入路径不存在于当前目录时，会相对本技能目录解析。
+
 ## 边界
 
 - 资产事实只来自已接受剧本、已有 设定集、连续性和创作者补充；不擅改剧情。

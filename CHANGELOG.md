@@ -37,6 +37,11 @@
 
 ### 新增
 
+- **三个阶段 Skill 补齐独立可运行闭环**。`short-drama-assets`、
+  `short-drama-image-prompts` 与 `short-drama-review` 各自新增原生最小样例、本地结构校验器、
+  离线 selftest 和 `SKILL.md` Quick Start；单独拷走目录后仍可运行，不读取 core、sibling、
+  全局 manifest 或 Dashboard。校验只覆盖可机械证明的 ID、引用、绑定与 verdict 一致性，
+  不把审美判断或固定配方升级成硬门。
 - **`$short-drama-produce` 确认后投产**。新增 provider-neutral 的图片、视频与 TTS job：
   `prepare` 展示准确数量、prompt/spec、参考、参数、输出、覆盖行为与 adapter；只有创作者看到
   当前预览并明确确认后，`run` 才以无 shell 的 argv adapter 执行。job 或直接输入变化会让确认
