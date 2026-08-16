@@ -1,0 +1,184 @@
+{
+  "episode_id": "EP005",
+  "dispositions": [
+    {
+      "block_id": "BLK-EP005-SC001-H01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-01",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-A01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-01",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-A02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-02",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-A03",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-02",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-P01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-03",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-D01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-03",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-D02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-03",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-A04",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-04",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-D03",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-04",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-A05",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-04",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP005-SC001-P02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP005/storyboard/shots.jsonl",
+          "hash": "b2c9be74642a5035f07a28d22b959f2b5abe378151201427b75cfb37ac46e86a",
+          "record_id": "SHOT-EP005-04",
+          "authority": "candidate"
+        }
+      ]
+    }
+  ],
+  "episode_duration": {
+    "shot_seconds_total": 60,
+    "counted_shot_ids": [
+      "SHOT-EP005-01",
+      "SHOT-EP005-02",
+      "SHOT-EP005-03",
+      "SHOT-EP005-04"
+    ],
+    "unresolved_durations": [],
+    "target_ref": {
+      "owner": "short-drama",
+      "artifact": "short-drama.json",
+      "hash": "63c4ba91f0c65c79b08aff608655004aea8efe370ec98445f2866f6e457633d7",
+      "field": "/format/target_seconds_per_episode"
+    },
+    "target_seconds": null,
+    "delta_seconds": null,
+    "disposition": "no_target_declared"
+  },
+  "screenplay_ref": {
+    "owner": "short-drama-write",
+    "artifact": "剧集/EP005/screenplay-index.jsonl",
+    "hash": "ed015cce1aa3e7cff74d36a0587d1a7d71dac578fddb461c452fac4821e7de4d"
+  },
+  "status": "candidate"
+}

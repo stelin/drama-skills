@@ -1,0 +1,241 @@
+{
+  "episode_id": "EP008",
+  "dispositions": [
+    {
+      "block_id": "BLK-EP008-SC001-H01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-01",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-01",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-P01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-02",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-02",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-D01",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-02",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-D02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-03",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A03",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-04",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-D03",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-04",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A04",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-D04",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A05",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-P02",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-A06",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-P03",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    },
+    {
+      "block_id": "BLK-EP008-SC001-P04",
+      "status": "covered",
+      "reason": "Assigned once to the primary shot that delivers this block.",
+      "shot_refs": [
+        {
+          "owner": "short-drama-storyboard",
+          "artifact": "剧集/EP008/storyboard/shots.jsonl",
+          "hash": "5513f0e20ec8c24c1bfaae04ef776e8eb9c605763069397c3513639684d214d3",
+          "record_id": "SHOT-EP008-05",
+          "authority": "candidate"
+        }
+      ]
+    }
+  ],
+  "episode_duration": {
+    "shot_seconds_total": 75,
+    "counted_shot_ids": [
+      "SHOT-EP008-01",
+      "SHOT-EP008-02",
+      "SHOT-EP008-03",
+      "SHOT-EP008-04",
+      "SHOT-EP008-05"
+    ],
+    "unresolved_durations": [],
+    "target_ref": {
+      "owner": "short-drama",
+      "artifact": "short-drama.json",
+      "hash": "63c4ba91f0c65c79b08aff608655004aea8efe370ec98445f2866f6e457633d7",
+      "field": "/format/target_seconds_per_episode"
+    },
+    "target_seconds": null,
+    "delta_seconds": null,
+    "disposition": "no_target_declared"
+  },
+  "screenplay_ref": {
+    "owner": "short-drama-write",
+    "artifact": "剧集/EP008/screenplay-index.jsonl",
+    "hash": "86036e8b2b27f88f9aa2a4cbab903bd8ce4f26341845bf75193f1c74c8b348fa"
+  },
+  "status": "candidate"
+}
