@@ -8,27 +8,29 @@ license: MIT
 
 把已接受的资产事实写成“能认出、能复用、能区分状态”的参考图提示词。这里的产物是提示词，不是图片。
 
-预览、警告与修订说明是创作者读的，跟随 `short-drama.json#/language`；送给图片生成器的
-**通用提示词正文**跟随 `#/format/prompt_language`（默认 `en`，多数生成器对英文提示词最稳定）。
-两个值都由 core `project_tool.py` 的 `status` 报出，不要各自猜默认值。改了描述语言不等于
+预览、警告与修订说明是创作者读的：项目内跟随 `short-drama.json#/language`，独立运行时
+跟随用户使用的语言。送给图片生成器的**通用提示词正文**在项目内跟随
+`#/format/prompt_language`，独立运行时由用户指定、未指定则为 `en`。
+改了描述语言不等于
 改了画面里的可读文字——那由已接受的文字政策决定。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界、需要从制作形态取得哪些输入，以及本阶段规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的资产事实、视觉方向与本任务直接输入；若当前
+目录是 `short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少
+core 或任何其他技能都不是提示词工作的阻断条件。[阶段契约](references/stage-contract.md)
+给出本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
 ## 进入条件与边界
 
-- 可从现成项目直接进入，不要求先做故事开发；先定位 `short-drama.json` 和版本一致的主技能。
+- 可从现成项目或创作者直接提供的资产记录进入，不要求先做故事开发或安装主技能。
 - 所有权或直接输入影响不清楚时，读
   [阶段契约](references/stage-contract.md) 的所有权边界；需要定位规则 ID
   或解释审查问题时，读同一文件的本阶段规则表。
 - 输入必须是已接受的 `CHAR/LOOK`、`LOC/VIEW` 或 `PROP/PSTATE` 精确 ID 与快照引用。未决指代、冲突变体或未知状态退回 `$short-drama-assets`，不代猜。
-- 始终读取 `short-drama.json#/creator_authority/{visual_direction,production_profile}` 中状态为
-  `accepted` 的视觉方向与制作形态：它决定本阶段可执行的形状语言、线条/表面处理、材质对光的
+- 项目存在时读取 `short-drama.json#/creator_authority/{visual_direction,production_profile}`
+  中状态为 `accepted` 的视觉方向与制作形态；独立运行时使用创作者直接提供的等价约束，未提供
+  就保持 `unset`。它决定本阶段可执行的形状语言、线条/表面处理、材质对光的
   响应与层拆；若状态为 `unset`，就向创作者给出选择，不从对话记忆补造，也不用默认审美冒充
   已接受形态。形态只决定可执行词汇，不决定身份、地理、持物、可读文字政策与故事状态。
 - 若创作者明确要求全链预览，可对唯一且没有 `unresolved` 问题的资产提案写候选提示词；
@@ -55,6 +57,13 @@ license: MIT
 [独立风格帧模板](assets/lookdev-frame-spec.jsonl.md) 与
 [风格帧 Markdown 模板](assets/lookdev-prompts.md)，不先加载普通资产超集再删字段。普通资产交付文本
 使用 [Markdown 模板](assets/image-prompts.md)。只加载当前类型所需资料。
+
+## Bounded execution
+
+- One work unit covers one `explicit asset-ID set`; a request for all assets is split into named sets.
+- Validate and persist only that unit, then report its `included scope`, `remaining scope`, unresolved bindings and next useful set.
+- After the report, `return control` to the creator; do not continue into another set, media generation or a downstream stage in the same turn.
+- Unless the current request is explicitly a review request, do not invoke `$short-drama-review` automatically.
 
 ## 工作流
 
@@ -113,7 +122,8 @@ license: MIT
 - `剧集/<EP>/assets/image-prompt-specs.jsonl`：权威规格；
 - `剧集/<EP>/assets/image-prompts.md`：由已接受规格和配方 `hash` 重新生成的文本版本。
 
-用 core `publish` 发布规格和派生文本，并声明直接输入；不得以半成品覆盖当前版本。
+项目工具可用时用 `publish` 发布规格和派生文本并声明直接输入；独立运行时直接写出本阶段文件。
+两种方式都不得以半成品覆盖当前版本。
 
 ## 自然语言修订
 
@@ -133,7 +143,7 @@ license: MIT
 - 每个规格能追溯到准确的已接受资产与版本，且通用提示词可独立复制；
 - 类型配方完整，重要事实在泛化审美词之前，无未决占位或内部工作指令；
 - 局部修改同时说明改什么、保留什么、会影响哪些连续性；
-- 已运行本地结构检查，再交给独立 `$short-drama-review` 结合来源资料审查内容；
+- 已运行当前批次的本地结构检查；需要内容 verdict 时作为单独请求交给 `$short-drama-review`；
 - 交付中没有媒体、远程执行任务或接口信息、远端 ID、私有对应表或“生成成功”声明。
 
 ## 投产交接

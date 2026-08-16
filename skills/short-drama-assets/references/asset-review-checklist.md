@@ -6,8 +6,8 @@
 必须在引用的剧情范围内有效。未解决的 occurrence 继续保持 unresolved；不得
 为了让提示词或分镜继续工作，猜一个看似合理的 ID。
 
-按“机械事实 → 语义判断 → 创作者接受”顺序检查。Owner 可按 finding 修订，但不能给
-自己的资产发最终 approval。
+按“机械事实 → 语义判断 → 创作者接受”顺序检查。Owner 可按 finding 修订；修订动作本身
+不等于审查 verdict。需要 verdict 时另起一次审查动作，自检也可以如实记录有证据支持的结论。
 
 ## A. 机械检查（`structural_invariant`）
 
@@ -76,13 +76,11 @@ Creator 可用制作原因覆盖，例如需要逐件审批背景陈设；记录
 5. continuity deltas 与跨集 outgoing；
 6. 接受后会 stale 的下游文件。
 
-逐项保存 `proposed/accepted/rejected/superseded` 与 creator decision ref。以下事实必须
-分开记录，不能合成一个 `accepted: true`：build state、structural validation、creator
-acceptance、independent review、delivery gate。
+逐项保存 `proposed/accepted/rejected/superseded` 与 creator decision ref。Creator acceptance
+不自动代表结构检查、审查 verdict 或 delivery-ready；只在对应动作真实发生时分别记录。
 
-## C2 放行判据
+## 当前范围完成判据
 
-只有当本次范围内：结构检查通过；每个 occurrence 已决定；无 unresolved binding；
-continuity 可交接；creator 接受了新增/复用/变体/delta；且独立 review 无阻断 finding，
-才可将资产 checkpoint 视为 C2 完成。C2 后图片提示词与 storyboard 是并列分支，
-图片提示词不应成为分镜前置门槛。
+本次范围内结构检查通过、每个 occurrence 已决定、无 unresolved binding、continuity 可交接，
+且 creator 接受了新增/复用/变体/delta，即完成当前资产批次。审查与交付是后续独立动作，
+不作为图片提示词或 storyboard 这两个并列分支的隐式前置门槛。

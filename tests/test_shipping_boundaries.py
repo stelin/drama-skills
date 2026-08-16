@@ -79,18 +79,18 @@ class ShippingBoundaryTests(unittest.TestCase):
         ).stdout.splitlines()
         self.assertEqual(tracked, [])
 
-    def test_release_manifest_contains_no_cache_or_binary_artifact(self) -> None:
-        import json
-
-        manifest = json.loads(
-            (SHIPPED_SKILLS / "short-drama/suite-manifest.json").read_text(
-                encoding="utf-8"
-            )
-        )
+    def test_shipped_tree_contains_no_cache_or_binary_artifact(self) -> None:
         forbidden = {".pyc", ".pyo", ".so", ".dylib", ".dll", ".exe"}
+        tracked = subprocess.run(
+            ["git", "ls-files", "skills"],
+            cwd=SUITE,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
         findings = [
             relative
-            for relative in manifest["files"]
+            for relative in tracked
             if "__pycache__" in Path(relative).parts
             or Path(relative).suffix.lower() in forbidden
         ]

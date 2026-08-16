@@ -8,21 +8,21 @@ license: MIT
 
 把分镜已经决定的一个镜头，写成按时间执行的动作、表演、摄影和声音。运动说明只实现起止边界，不能改写边界。
 
-预览、末端报告与补拍说明是创作者读的，跟随 `short-drama.json#/language`；
-送给视频生成器的**提示词正文**跟随 `#/format/prompt_language`（默认 `en`）。
-两个值都由 core `project_tool.py` 的 `status` 报出，不要各自猜默认值。改了描述语言
+预览、末端报告与补拍说明是创作者读的：项目内跟随 `short-drama.json#/language`，独立运行时
+跟随用户使用的语言。送给视频生成器的**提示词正文**在项目内跟随
+`#/format/prompt_language`，独立运行时由用户指定、未指定则为 `en`。改了描述语言
 不等于改了画面里说什么或写什么——那来自已接受的资产记录与文字政策。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界、需要从制作形态取得哪些输入，以及本阶段规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的镜头、关键帧与本任务直接输入；若当前目录是
+`short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少 core
+或任何其他技能都不是视频提示词工作的阻断条件。[阶段契约](references/stage-contract.md)
+给出本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
 ## 进入条件与权属
 
-- 可从已接受的镜头或关键帧直接进入，无需重新开发故事；先定位项目和版本一致的主技能。
+- 可从已接受的镜头、关键帧或创作者直接提供的等价输入进入，无需重新开发故事或安装主技能。
 - 所有权或直接输入影响不清楚时，读
   [阶段契约](references/stage-contract.md) 的所有权边界；需要定位规则 ID
   或解释审查问题时，读同一文件的本阶段规则表。
@@ -49,6 +49,13 @@ license: MIT
 规格使用 [运动规格模板](assets/motion-spec.jsonl.md)；末镜或下一集记录尚未建立时参考
 [末镜定位示例](assets/motion-terminal.example.jsonl)；可复制交付使用
 [Markdown 模板](assets/video-prompts.md)。只加载本次问题需要的资料。
+
+## Bounded execution
+
+- One work unit covers `one scene or contiguous shot range`; a whole-episode request is split at those boundaries.
+- Validate and persist only that unit, then report its `included scope`, `remaining scope`, unresolved motion fields and next useful range.
+- After the report, `return control` to the creator; do not continue into another range, production or repackaging in the same turn.
+- Unless the current request is explicitly a review request, do not invoke `$short-drama-review` automatically.
 
 ## 工作流
 
@@ -185,7 +192,8 @@ reviewer 在下游审查结论中决定，不能回写运动规格形成循环�
 - `剧集/<EP>/storyboard/video-prompts.md`：由已接受规格、容器记录和配方 `hash` 生成的文本版本。
 
 自然语言改提示词时，先展示规格字段怎样变化和重新生成的文本预览；若改动触碰分镜或
-剧本负责的内容，保持当前文件不变，并把修改请求交给对应技能。跨文件产物用 core `publish` 发布，并声明直接输入。
+剧本负责的内容，保持当前文件不变，并把修改请求交给对应技能。项目工具可用时用 `publish`
+发布跨文件产物并声明直接输入；独立运行时直接写出本阶段文件。
 
 ## 完成标准
 
@@ -193,7 +201,7 @@ reviewer 在下游审查结论中决定，不能回写运动规格形成循环�
 - 若本镜确有表演变化，表演有触发、处理与可见结果；动作量可行，摄影与环境/声音服务镜头目的；
 - 参考帧已知外观不被重复描述淹没，通用提示词可独立复制；
 - 交付文本只含要拍出来的画面内容：没有参考图文件名、版本号、内部标记、草图指代或任务备注；同一角色的参考绑定在每次提及处一致，不出现只绑一半的写法；
-- 本地结构检查后交 `$short-drama-review` 结合来源资料审查是否可执行、是否改写原意；
+- 已完成当前批次的本地结构检查；需要内容 verdict 时另行请求 `$short-drama-review`；
 - 没有媒体文件、供应商接口或远程任务字段、远端 ID 或“视频已生成”声明。
 
 ## 投产交接

@@ -39,7 +39,7 @@ Codex 等支持导入 GitHub 仓库的智能体：
 ```
 
 <details>
-<summary>手动链接（十个技能目录必须保持同级）</summary>
+<summary>手动链接（可安装全部，也可只链接需要的技能）</summary>
 
 ```bash
 git clone https://github.com/worldwonderer/drama-skills.git && cd drama-skills
@@ -57,7 +57,8 @@ for skill in skills/*; do
 done
 ```
 
-已存在同名技能时先移除旧链接，不要混装版本。
+每个技能都是独立安装单元；只使用写作、审查或生产等单一能力时，可以只链接对应目录。
+`short-drama` 提供项目初始化、状态、交付与 Dashboard，但不是其他技能的安装门禁。
 
 </details>
 

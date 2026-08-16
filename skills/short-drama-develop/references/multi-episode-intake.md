@@ -112,7 +112,7 @@ python3 <core 技能目录>/scripts/project_tool.py publish <项目根> \
 发布完成后再删除临时候选和单集切片。不要让 `merge` 直接覆盖
 `项目开发/episode-map.jsonl`，也不要绕过 `project_tool.py` 手工替换它。
 
-中断后运行 core `status`，再重新运行 `progress`。磁盘上的当前
+中断后先重新运行 `progress`；项目工具可用时也读取 `status`。磁盘上的当前
 `episode-map.jsonl` 是唯一完成真相；checkpoint 若需要只是由它重建的缓存，不能用
 `last_completed` 猜连续进度。已有 `EP001`、`EP003` 时，`EP002` 仍会出现在 pending，已完成
-记录不会重跑。全部 `pending` 清空后，再做所有者检查、创作者接受与独立审查。
+记录不会重跑。全部 `pending` 清空后，再做所有者检查、创作者接受与审查。

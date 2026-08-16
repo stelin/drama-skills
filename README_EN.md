@@ -49,7 +49,7 @@ Install this skill suite: https://github.com/worldwonderer/drama-skills
 ```
 
 <details>
-<summary>Manual linking (the ten directories must stay siblings)</summary>
+<summary>Manual linking (install all skills or only the ones you need)</summary>
 
 ```bash
 git clone https://github.com/worldwonderer/drama-skills.git && cd drama-skills
@@ -67,7 +67,10 @@ for skill in skills/*; do
 done
 ```
 
-Remove any same-named skill links first — do not mix versions.
+Each skill is an independent installation unit. For a single writing, review, or
+production capability, link only that directory. `short-drama` provides project
+initialization, status, delivery, and the Dashboard; it is not an installation gate
+for the other skills.
 
 </details>
 

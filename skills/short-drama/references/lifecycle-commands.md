@@ -47,7 +47,7 @@ B 又读 C 不会让 A 自动过期，只有 A 下次实际重建时才读取当
 ... review <project> --artifact-id <id> --verdict revise --note <bounded-fix>
 ```
 
-`approve_with_notes` 也计为通过；`provisional` 保持未批准。独立 reviewer 是创作质量实践，
+`approve_with_notes` 也计为通过；`provisional` 保持未批准。reviewer 是创作质量实践，
 不是 CLI 身份认证协议：有独立上下文时使用，没有时诚实填写自检标签。
 
 重新 `publish` 会清除该 artifact 的旧接受与复核。`status` 在读取时检查当前输出和直接输入，

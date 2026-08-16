@@ -62,8 +62,11 @@ class SimpleLifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = self.make_project(directory)
             state = json.loads((root / ".short-drama/state.json").read_text())
+            project = json.loads((root / "short-drama.json").read_text())
             self.assertEqual(state["schema_version"], "2.0")
             self.assertEqual(state["artifacts"], {})
+            self.assertNotIn("current_checkpoint", project)
+            self.assertNotIn("current_checkpoint", project_tool.project_status(root))
             self.assertNotIn("active_transaction", state)
             self.assertNotIn("blocked_transactions", state)
             for relative in ("输入", "项目开发", "设定集", "剧集", "交付", "创作者决策", "审查"):
@@ -218,16 +221,16 @@ class SimpleLifecycleTests(unittest.TestCase):
                     )
                 self.assertFalse((root / relative).exists())
 
-    def test_publish_enforces_declared_owner_and_protected_roots(self) -> None:
+    def test_publish_allows_first_writer_and_protects_non_stage_roots(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self.make_project(directory)
-            with self.assertRaisesRegex(ValueError, "short-drama-write owns"):
-                project_tool.publish_candidate(
-                    root,
-                    owner="short-drama-storyboard",
-                    artifact_id="wrong",
-                    outputs={"剧集/EP001/screenplay.md": "x"},
-                )
+            published = project_tool.publish_candidate(
+                root,
+                owner="independent-script-skill",
+                artifact_id="independent-script",
+                outputs={"剧集/EP001/screenplay.md": "x"},
+            )
+            self.assertEqual(published["owner"], "independent-script-skill")
             with self.assertRaisesRegex(ValueError, "immutable"):
                 project_tool.publish_candidate(
                     root,

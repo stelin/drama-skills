@@ -18,7 +18,7 @@
 
 动作预算问的是：在 accepted duration 内，演员能否保持故事重点，清楚完成必要动作/反应/对白和 end state？它不是“每镜最多三个动词”或“每秒固定字数”。动作距离、接触复杂度、语言节奏、停顿、表演强度与相机是否需要等待，都比动词数量重要。
 
-**`reviewed_invariant`**：general feasibility 由独立 reviewer 用 shot、motion、对白和时长证据判断。只有显式 segment 数学超时才是 `structural_invariant`。
+**`reviewed_invariant`**：general feasibility 由审查者用 shot、motion、对白和时长证据判断。只有显式 segment 数学超时才是 `structural_invariant`。
 
 ## 2. 构造可演的动作链
 

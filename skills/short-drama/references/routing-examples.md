@@ -10,9 +10,10 @@
 | “根据这些关键帧写视频提示词” | video-prompts | read shot boundary; do not rewrite it |
 | “人物上一镜拿杯子下一镜没了，检查一下” | review | cite continuity evidence; route fix to owner |
 | “检查这集有没有模板感/AI 味” | review | 诊断模板感，只引用位置、损失和 owner，不改正文 |
-| “直接把这集去 AI 味并保留人物口吻” | write | 做定点修订与语义 diff，不自称独立审查通过 |
-| “先检查模板感，再按问题改掉并复查” | review → write → review | finding 路由给 owner；修改后重新读取当前版本，最好换未参与创作的 reviewer |
-| “继续” | router | resume the requested/most recent owner, not blindly run all stages |
+| “直接把这集去 AI 味并保留人物口吻” | write | 做定点修订与语义 diff，不自称审查通过 |
+| “先检查模板感，再按问题改掉并复查” | review → write → review | 每个箭头都是单独的一轮有界工作；finding 路由给 owner，不在一次调用里自动完成整条链 |
+| “做一版全链预览” | router | run one bounded work unit, report included/remaining scope, then stop |
+| “继续” | router | resume one bounded work unit for the requested/most recent owner, never the whole remaining pipeline |
 
 ## Ambiguous request
 

@@ -98,61 +98,6 @@ PROTECTED_PUBLISH_ROOTS = {
     for name in (CANONICAL_ROOTS[role], LEGACY_ROOTS[role])
 } | {".short-drama": "operational state cannot be a publication target"}
 
-DECLARED_PROJECT_ARTIFACT_OWNERS: dict[str, str] = {
-    "development/creative-brief.md": "short-drama-develop",
-    "development/story-engine.md": "short-drama-develop",
-    "development/director-brief.md": "short-drama-develop",
-    "development/adaptation-map.jsonl": "short-drama-develop",
-    "development/series-arc.json": "short-drama-develop",
-    "development/episode-intake-index.json": "short-drama-develop",
-    "development/episode-map.jsonl": "short-drama-develop",
-    "development/lookdev-image-prompt-specs.jsonl": "short-drama-image-prompts",
-    "development/lookdev-prompts.md": "short-drama-image-prompts",
-    "development/source-analysis/_index.json": "short-drama-novel-analyze",
-    "development/source-analysis/_progress.md": "short-drama-novel-analyze",
-    "development/source-analysis/triage.md": "short-drama-novel-analyze",
-    "development/source-analysis/story-units.md": "short-drama-novel-analyze",
-    "development/source-analysis/rhythm-and-emotion.md": "short-drama-novel-analyze",
-    "development/source-analysis/characters.md": "short-drama-novel-analyze",
-    "development/source-analysis/world.md": "short-drama-novel-analyze",
-    "development/source-analysis/adaptation-value.md": "short-drama-novel-analyze",
-    "development/source-analysis/episode-candidates.jsonl": "short-drama-novel-analyze",
-    "bible/characters.jsonl": "short-drama-assets",
-    "bible/looks.jsonl": "short-drama-assets",
-    "bible/locations.jsonl": "short-drama-assets",
-    "bible/location-views.jsonl": "short-drama-assets",
-    "bible/props.jsonl": "short-drama-assets",
-    "bible/prop-states.jsonl": "short-drama-assets",
-    "bible/voice-casting.md": "short-drama-assets",
-}
-DECLARED_PROJECT_ARTIFACT_FAMILY_OWNERS = {
-    "development/source-analysis/chapters": "short-drama-novel-analyze"
-}
-DECLARED_EPISODE_ARTIFACT_OWNERS: dict[str, str] = {
-    "episode-card.json": "short-drama-write",
-    "beats.jsonl": "short-drama-write",
-    "screenplay.md": "short-drama-write",
-    "screenplay-index.jsonl": "short-drama-write",
-    "voice-record-sheet.jsonl": "short-drama-write",
-    "assets/occurrences.jsonl": "short-drama-assets",
-    "assets/decisions.jsonl": "short-drama-assets",
-    "assets/continuity.jsonl": "short-drama-assets",
-    "assets/image-prompt-specs.jsonl": "short-drama-image-prompts",
-    "assets/image-prompts.md": "short-drama-image-prompts",
-    "storyboard/coverage.json": "short-drama-storyboard",
-    "storyboard/shots.jsonl": "short-drama-storyboard",
-    "storyboard/keyframes.jsonl": "short-drama-storyboard",
-    "storyboard/keyframe-prompts.md": "short-drama-storyboard",
-    "storyboard/motion-specs.jsonl": "short-drama-video-prompts",
-    "storyboard/delivery-containers.jsonl": "short-drama-video-prompts",
-    "storyboard/video-prompts.md": "short-drama-video-prompts",
-}
-DECLARED_EPISODE_ARTIFACT_FAMILY_OWNERS = {
-    "storyboard/coverage-auditions": "short-drama-storyboard",
-    "storyboard/scene-visual-plans": "short-drama-storyboard",
-}
-
-
 class ProjectConflictError(RuntimeError):
     """A file changed while a guarded operation was in progress."""
 
@@ -264,7 +209,6 @@ def initialize_project(
         (root / relative).mkdir(parents=True, exist_ok=True)
 
     core = suite_root or Path(__file__).resolve().parents[1]
-    manifest = json.loads((core / "suite-manifest.json").read_text(encoding="utf-8"))
     project = json.loads(
         (core / "assets/project-template/short-drama.json").read_text(encoding="utf-8")
     )
@@ -273,8 +217,6 @@ def initialize_project(
             "project_id": f"SD-{uuid.uuid4().hex[:12].upper()}",
             "title": title.strip() or "未命名短剧",
             "language": language,
-            "suite_version": manifest["suite_version"],
-            "contract_version": manifest["contract_version"],
             "created_at": utc_now(),
         }
     )
@@ -630,35 +572,8 @@ def _validate_project_output_layout(root: Path, relatives: Iterable[str]) -> str
     return family
 
 
-def _expected_path_owner(relative: str) -> str | None:
-    pure = PurePosixPath(relative)
-    role = _root_role(pure.parts[0])
-    folded = tuple(part.casefold() for part in pure.parts)
-    if role == "episodes" and len(pure.parts) >= 3:
-        remainder = PurePosixPath(*folded[2:]).as_posix()
-        exact = DECLARED_EPISODE_ARTIFACT_OWNERS.get(remainder)
-        if exact is not None:
-            return exact
-        parts = PurePosixPath(remainder).parts
-        if len(parts) == 3 and parts[-1].endswith(".jsonl"):
-            family = PurePosixPath(*parts[:2]).as_posix()
-            return DECLARED_EPISODE_ARTIFACT_FAMILY_OWNERS.get(family)
-        return None
-    if role is None:
-        return None
-    normalized = PurePosixPath(role, *folded[1:]).as_posix()
-    exact = DECLARED_PROJECT_ARTIFACT_OWNERS.get(normalized)
-    if exact is not None:
-        return exact
-    parts = PurePosixPath(normalized).parts
-    if len(parts) == 4 and parts[-1].endswith(".md"):
-        family = PurePosixPath(*parts[:3]).as_posix()
-        return DECLARED_PROJECT_ARTIFACT_FAMILY_OWNERS.get(family)
-    return None
-
-
 def _validate_publication_layout(
-    relative: str, *, owner: str, allow_unregistered: bool
+    relative: str, *, allow_unregistered: bool
 ) -> None:
     pure = PurePosixPath(relative)
     first = pure.parts[0].casefold()
@@ -677,9 +592,6 @@ def _validate_publication_layout(
         raise ValueError(
             f"{pure.parts[0]} is not a project stage directory; expected one of {', '.join(PUBLISHABLE_ROOTS)}"
         )
-    expected = _expected_path_owner(relative)
-    if expected is not None and owner != expected:
-        raise ValueError(f"{expected} owns {relative}, not {owner}")
     if role is not None and pure.parts[0] not in {CANONICAL_ROOTS[role], LEGACY_ROOTS[role]}:
         raise ValueError(f"阶段目录大小写或拼写不规范：{pure.parts[0]}")
 
@@ -824,7 +736,6 @@ def _build_status(
         "language": languages["language"],
         "prompt_language": languages["prompt_language"],
         "project_root": project_root,
-        "current_checkpoint": project.get("current_checkpoint"),
         "last_action": state.get("last_action"),
         "layout": dict(layout),
         "artifact_states": counts,
@@ -1095,7 +1006,7 @@ def publish_candidate(
     prepared: dict[str, bytes] = {}
     for relative in normalized_outputs:
         _validate_publication_layout(
-            relative, owner=owner, allow_unregistered=allow_unregistered_path
+            relative, allow_unregistered=allow_unregistered_path
         )
         content = outputs[relative]
         encoded = content.encode("utf-8") if isinstance(content, str) else bytes(content)

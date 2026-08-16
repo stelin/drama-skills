@@ -3,7 +3,7 @@
 ## Contents
 
 1. Project flow
-2. Single-owner registry
+2. Runtime path ownership
 3. Output language contract
 4. Stable identities and references
 5. Rule classes
@@ -20,26 +20,14 @@ development? -> screenplay -> assets -> image prompts
 This is a routing map, not a mandatory waterfall. Direct entry is valid, and Look Development is optional.
 Each artifact records only the project files it directly read. There is no recursive stale-propagation graph.
 
-## Single-owner registry
+## Runtime path ownership
 
-| Fact | Owner |
-|---|---|
-| creator constraints, visual direction, production profile | creator fields in `short-drama.json` |
-| creator accept/reject decisions | creator or authorized delegate |
-| story promise, series arc, adaptation map, planned episode contract | develop |
-| scene plan, beats, screenplay, realized character state | write |
-| screenplay block IDs, byte spans and source hashes | write indexer |
-| character/location/prop identity, variants and continuity | assets |
-| image composition and image prompt specs | image-prompts |
-| coverage, shot purpose, duration, boundaries and keyframes | storyboard |
-| motion, performance, camera/audio realization and delivery containers | video-prompts |
-| confirmed media job, adapter dispatch and run record | produce |
-| long-source index and adaptation candidates | novel-analyze |
-| findings, verdicts and bounded revision requests | review |
-| artifact status and delivery checksums | shared core |
+`project_tool.py` does not contain a registry mapping business paths to skill names. The first published artifact
+claims its output paths in project state, and another artifact cannot silently overwrite those paths. Input,
+delivery and machine-state roots remain protected regardless of owner name.
 
-An owner may project another owner's facts but may not silently redefine them. A reviewer requests changes; the
-owner edits its source. Shot boundaries own visible start/end continuity; keyframes and motion project those facts.
+Each skill's own stage contract describes its semantic responsibility. An artifact may project another artifact's
+facts but may not silently redefine them. A reviewer requests changes; the responsible skill edits its source.
 
 ## Output language contract
 

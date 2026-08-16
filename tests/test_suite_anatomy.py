@@ -1,20 +1,11 @@
-import importlib.util
-import hashlib
 import json
 import re
-import shutil
-import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
 
 SUITE = Path(__file__).resolve().parents[1]
 CORE = SUITE / "skills/short-drama"
-VERIFY = SUITE / "tools/verify_suite.py"
-SPEC = importlib.util.spec_from_file_location("short_drama_verify_suite", VERIFY)
-assert SPEC and SPEC.loader
-verify_suite = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(verify_suite)
 
 EXPECTED_SKILLS = {
     "short-drama",
@@ -69,44 +60,9 @@ def resolve_json_pointer(document: object, pointer: str) -> object:
 
 
 class SuiteAnatomyTests(unittest.TestCase):
-    def test_verifier_rejects_child_content_tampering(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            copied = Path(directory) / "skills"
-            shutil.copytree(SUITE / "skills", copied)
-            target = copied / "short-drama-write/SKILL.md"
-            target.write_text(
-                target.read_text(encoding="utf-8") + "\nunauthorized mutation\n",
-                encoding="utf-8",
-            )
-            with self.assertRaisesRegex(ValueError, "content hash mismatch"):
-                verify_suite.verify_suite(copied / "short-drama")
-
-    def test_verifier_rejects_unmanifested_binary(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            copied = Path(directory) / "skills"
-            shutil.copytree(SUITE / "skills", copied)
-            stray = copied / "short-drama/scripts/native_helper.so"
-            stray.write_bytes(b"not a release artifact")
-            with self.assertRaisesRegex(ValueError, "unexpected suite files"):
-                verify_suite.verify_suite(copied / "short-drama")
-
-    def test_verifier_tolerates_local_bytecode_cache(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            copied = Path(directory) / "skills"
-            shutil.copytree(SUITE / "skills", copied)
-            cache = copied / "short-drama/scripts/__pycache__/project_tool.pyc"
-            cache.parent.mkdir(parents=True, exist_ok=True)
-            cache.write_bytes(b"local bytecode cache")
-            result = verify_suite.verify_suite(copied / "short-drama")
-            self.assertEqual(len(result["checked_skills"]), len(EXPECTED_SKILLS))
-
     def test_exact_public_skill_set(self) -> None:
         actual = {path.name for path in (SUITE / "skills").iterdir() if path.is_dir()}
         self.assertEqual(actual, EXPECTED_SKILLS)
-
-        manifest = json.loads((CORE / "suite-manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(set(manifest["public_skills"]), EXPECTED_SKILLS)
-        self.assertEqual(len(manifest["public_skills"]), len(EXPECTED_SKILLS))
 
     def test_markdown_links_resolve_one_hop(self) -> None:
         for markdown in (SUITE / "skills").glob("*/SKILL.md"):
@@ -534,10 +490,8 @@ class SuiteAnatomyTests(unittest.TestCase):
         self.assertTrue(verdict["reviewed_artifacts"])
         self.assertTrue({"owner", "artifact", "hash"}.issubset(verdict["findings_ref"]))
         self.assertEqual(verdict["open_blocker_count"], 0)
-        self.assertFalse(verdict["reviewer"]["independent"])
-        self.assertEqual(verdict["reviewer"]["kind"], "unattested")
-        self.assertEqual(verdict["requested_review_mode"], "independent_agent")
-        self.assertEqual(verdict["effective_review_mode"], "unattested")
+        self.assertEqual(verdict["review_method"], "uninvolved_reviewer | self_check")
+        self.assertIsInstance(verdict["reviewer"], str)
         self.assertEqual(verdict["structural_validation"], "not_run")
         self.assertEqual(verdict["verdict"], "PROVISIONAL")
 
@@ -574,29 +528,6 @@ class SuiteAnatomyTests(unittest.TestCase):
         self.assertEqual(policy_ref["artifact"], "设定集/props.jsonl")
         self.assertEqual(policy_ref["field"], "/text_policy")
         self.assertIn("text_policy", prop)
-
-    def test_manifest_covers_every_public_file_and_canonical_text(self) -> None:
-        manifest = json.loads((CORE / "suite-manifest.json").read_text(encoding="utf-8"))
-        recorded = manifest["files"]
-        child_refs = {
-            f"{skill}/suite-ref.json"
-            for skill in manifest["public_skills"]
-            if skill != manifest["core_skill"]
-        }
-        actual = {
-            path.relative_to(SUITE / "skills").as_posix()
-            for path in (SUITE / "skills").rglob("*")
-            if path.is_file()
-            and path != CORE / "suite-manifest.json"
-            and "__pycache__" not in path.parts
-            and path.relative_to(SUITE / "skills").as_posix() not in child_refs
-        }
-        self.assertEqual(set(recorded), actual)
-        for relative, expected_hash in recorded.items():
-            path = SUITE / "skills" / relative
-            canonical = path.read_bytes().replace(b"\r\n", b"\n")
-            self.assertEqual(hashlib.sha256(canonical).hexdigest(), expected_hash)
-
 
 if __name__ == "__main__":
     unittest.main()

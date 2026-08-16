@@ -12,7 +12,8 @@
    `craft_default` / `taste_option` 四级；不得把统一的字数、比例、数量配方设为
    质量门槛。可迁移知识在 `skills/short-drama/references/knowhow-index.md` 注册
    稳定 ID。
-3. **所有权与独立审查**：每个产物只有一个负责技能；负责人不能审查自己的产物。
+3. **所有权与审查分离**：每个产物只有一个负责技能；修订动作不能冒充审查 verdict。
+   优先使用未参与当前版本创作的 reviewer；条件不允许时可以诚实标注自检，不等待或伪造隔离证明。
 4. **来源边界**：仓库不得包含非公开项目内容、内部标识、私有网址、供应商任务
    或媒体文件；示例一律合成改写。边界测试会检查这些要求。
 
@@ -32,7 +33,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -v
 按 maintainer-only `$short-drama-knowhow` 流程，由未看过来源和作者答案的 fresh agent 做
 语义 de-copy 盲审；无法取得 fresh 独立上下文时不得发布该候选。
 
-该维护技能故意不在公共 `skills/*` 安装循环或 public manifest 中。维护者需从受控 checkout
+该维护技能故意不放在公共 `skills/*` 目录中。维护者需从受控 checkout
 显式链接后调用，普通创作者无需安装：
 
 ```bash
@@ -41,7 +42,7 @@ ln -s "$PWD/maintainers/skills/short-drama-knowhow" \
   "${CODEX_HOME:-$HOME/.codex}/skills/short-drama-knowhow"
 ```
 
-已存在同名路径时先核对并移除旧链接；不要把此目录移动到公共 `skills/` 或加入套件清单。
+已存在同名路径时先核对并移除旧链接；不要把此目录移动到公共 `skills/`。
 盲测 arms、verdict、promotion 证据和回滚记录保存在仓库外的受控工作区或被忽略的
 `.omx/evals/`；`maintainers/evals/` 也被忽略，公共测试不得依赖其中的本地评测内容。
 受保护 CI 需要检查这些证据时，通过显式的外部路径注入，不能把它们复制回公开 tree。
@@ -54,7 +55,6 @@ ln -s "$PWD/maintainers/skills/short-drama-knowhow" \
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -v
 ruff check --no-cache .
-python3 tools/verify_suite.py skills/short-drama
 ```
 
 ### Python 版本下限
@@ -71,11 +71,8 @@ uv venv --python 3.10 /tmp/floor && \
 
 （`datetime.UTC` 需要 3.11、`zip(strict=)` 需要 3.10，都属于本机能跑、下限跑不了的典型。）
 
-改动 `skills/` 下任何文件后，需重建套件清单（会同步重写 8 个 `suite-ref.json`）：
-
-```bash
-python3 tools/update_suite_manifest.py skills/short-drama
-```
+每个 `skills/*` 目录独立维护。仓库不生成全局文件清单、不写 sibling pin，也不要求一次安装
+全部技能；修改一个技能不应产生其他技能目录的机械变更。
 
 ## 更新日志
 

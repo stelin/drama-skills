@@ -48,9 +48,18 @@ Look Development is optional. Image prompts and storyboard are sibling branches 
 
 ## Preview, confirmation and revision
 
-A request for an end-to-end preview authorizes drafting, not acceptance. Keep undecided work in
-`needs_confirmation`; downstream drafts may refer to the current project files, but delivery remains blocked until
-the creator accepts the relevant outputs.
+A request for an end-to-end preview authorizes drafting, not acceptance. Its runtime contract is **one bounded work unit per turn**:
+
+1. choose one owner stage; for a high-fanout stage, choose one explicit contiguous batch;
+2. read only that unit's direct inputs, draft or revise it, and run its local structural checks;
+3. persist a candidate without inventing creator acceptance;
+4. report the included scope, remaining scope and next useful action, then **return control to the creator**.
+
+Stop rule: do not automatically enter the next owner stage, review, or production. A creator message such as “continue”
+authorizes only the next bounded unit, not the rest of the pipeline. Review is a separate bounded work unit and
+runs only when the creator explicitly requests it or when an explicitly requested delivery needs a verdict.
+Keep undecided work in `needs_confirmation`; delivery remains blocked until the creator accepts the relevant
+outputs.
 
 For a revision:
 
@@ -59,7 +68,7 @@ For a revision:
 3. show the semantic change and what should remain unchanged;
 4. let the owner publish the revision;
 5. request creator acceptance when canonical meaning changed;
-6. run an appropriate review, preferably from a context that did not author this version.
+6. report whether a separate bounded review is still needed; do not start it automatically.
 
 Changing an upstream file does not recursively rewrite project state. A consumer that directly recorded that file
 shows `update_needed`; republish the consumer when the creator actually wants it refreshed.

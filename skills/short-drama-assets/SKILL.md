@@ -10,18 +10,19 @@ license: MIT
 多少人名和名词，而是回答：屏幕上具体需要什么、它与已有资产是不是同一个、
 此刻是哪种造型/视图/状态，以及变化怎样传到下一场和下一集。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界、需要从制作形态取得哪些输入，以及本阶段规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的剧本、既有资产与本任务直接输入；若当前目录
+是 `short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少 core
+或任何其他技能都不是资产拆解的阻断条件。[阶段契约](references/stage-contract.md) 给出
+本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
 ## 边界
 
 - 资产事实只来自已接受剧本、已有 设定集、连续性和创作者补充；不擅改剧情。
-- 始终读取 `short-drama.json#/creator_authority/{visual_direction,production_profile}` 中状态为
-  `accepted` 的视觉方向与制作形态：形态决定哪些身份锚点在本项目里根本可被表达——以剪影为
+- 项目存在时读取 `short-drama.json#/creator_authority/{visual_direction,production_profile}`
+  中状态为 `accepted` 的视觉方向与制作形态；独立运行时使用创作者直接提供的等价约束，未提供
+  就保持 `unset`。形态决定哪些身份锚点在本项目里根本可被表达——以剪影为
   识别通道的形态与以面部结构为识别通道的形态需要不同的锚点集合；若状态为 `unset`，就向
   创作者给出选择，不从对话记忆补造。形态可以改变锚点的表达通道与颗粒度，不得反过来改写
   已接受的身份、地理、持物归属、可读文字政策或故事状态。
@@ -32,7 +33,8 @@ license: MIT
   `short-drama-storyboard`，图片提示词归 `short-drama-image-prompts`。
 - 可直接接收现成剧本，不强迫补创意开发、故事引擎或集纲。
 - 只产出文本/JSONL；不调用图片、视频、音频模型或 provider API。
-- 创作者可读的产物跟随项目 `short-drama.json#/language`。本阶段不产生送给生成器的
+- 创作者可读的产物在项目内跟随 `short-drama.json#/language`，独立运行时跟随用户使用的
+  语言。本阶段不产生送给生成器的
   提示词正文，与 `#/format/prompt_language` 无关；角色实际说什么语言来自
   `voice_direction.language`，与两者都无关。
 
@@ -50,6 +52,13 @@ license: MIT
    但只呈现所问范围及它依赖的连续性，不用强迫走完整项目流程。
 
 缺少 index 时，不凭行号冒充稳定来源；先请 write owner 对剧本建立 block ID/hash。
+
+## Bounded execution
+
+- One work unit covers one explicit `source scene/block range`; a whole-episode request is split at source boundaries.
+- Validate and persist only that unit, then report its `included scope`, `remaining scope`, unresolved occurrences and next useful unit.
+- After the report, `return control` to the creator; do not continue into another range, image prompts or storyboard in the same turn.
+- Unless the current request is explicitly a review request, do not invoke `$short-drama-review` automatically.
 
 ## 工作流
 
@@ -148,10 +157,10 @@ ID/variant 的提示词、镜头和 review，由相应 owner 按需刷新；不�
 
 ## 完成条件
 
-发布 C2 前使用 `references/asset-review-checklist.md`：来源和引用可解析；每个
+完成当前有界范围前使用 `references/asset-review-checklist.md`：来源和引用可解析；每个
 occurrence 有明确 decision；未决项保持未决；身份/变体边界可信；连续性能够从
-incoming 走到 outgoing；创作者已经接受本次变更。最终 approval 必须交给
-`short-drama-review`，本 skill 只修订自己拥有的资产事实。
+incoming 走到 outgoing；创作者已经接受本次变更。本 skill 只修订自己拥有的资产事实；
+需要 delivery verdict 时另行请求 `short-drama-review`，不得从这里自动启动。
 
 创作者要求实际合成声音时，把已接受的声音身份、参考音频和录音表交给
 `$short-drama-produce`。该技能会先展示精确任务预览并等待创作者明确确认；本技能不调用

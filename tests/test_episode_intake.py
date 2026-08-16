@@ -15,15 +15,6 @@ assert SPEC and SPEC.loader
 episode_intake = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(episode_intake)
 
-PROJECT_TOOL_SCRIPT = SUITE / "skills/short-drama/scripts/project_tool.py"
-PROJECT_TOOL_SPEC = importlib.util.spec_from_file_location(
-    "episode_intake_project_tool", PROJECT_TOOL_SCRIPT
-)
-assert PROJECT_TOOL_SPEC and PROJECT_TOOL_SPEC.loader
-project_tool = importlib.util.module_from_spec(PROJECT_TOOL_SPEC)
-PROJECT_TOOL_SPEC.loader.exec_module(project_tool)
-
-
 def serial(count: int, newline: bytes = b"\n", body_lines: int = 2) -> bytes:
     return newline.join(
         (
@@ -397,18 +388,6 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("Agent 判断这份文件实际怎样分集", workflow)
         self.assertIn("批次没有通用固定值", workflow)
         self.assertIn("不生成转折、回报、钩子等创作字段", workflow)
-
-    def test_episode_intake_index_and_map_belong_to_develop(self) -> None:
-        for relative in (
-            "项目开发/episode-intake-index.json",
-            "项目开发/episode-map.jsonl",
-        ):
-            with self.subTest(relative=relative):
-                self.assertEqual(
-                    project_tool._expected_path_owner(relative),
-                    "short-drama-develop",
-                )
-
 
 if __name__ == "__main__":
     unittest.main()

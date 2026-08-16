@@ -1,39 +1,9 @@
-import importlib.util
 import json
 import unittest
 from pathlib import Path
 
 SUITE = Path(__file__).resolve().parents[1]
-SCRIPT = SUITE / "skills/short-drama/scripts/project_tool.py"
-SPEC = importlib.util.spec_from_file_location("sd_project_tool_voice", SCRIPT)
-assert SPEC and SPEC.loader
-project_tool = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(project_tool)
-
 ASSETS = SUITE / "skills/short-drama-assets"
-
-
-class OwnershipTests(unittest.TestCase):
-    def test_casting_sheet_and_the_identity_it_projects_share_one_owner(self) -> None:
-        # Splitting them would put the reference binding that defines a
-        # character in one stage and the check that two characters stay
-        # distinguishable in another.
-        owners = {
-            path: project_tool._expected_path_owner(path)
-            for path in (
-                "设定集/characters.jsonl",
-                "设定集/voice-casting.md",
-                "剧集/EP001/voice-record-sheet.jsonl",
-            )
-        }
-        self.assertEqual(
-            owners,
-            {
-                "设定集/characters.jsonl": "short-drama-assets",
-                "设定集/voice-casting.md": "short-drama-assets",
-                "剧集/EP001/voice-record-sheet.jsonl": "short-drama-write",
-            },
-        )
 
 
 class RuleTests(unittest.TestCase):

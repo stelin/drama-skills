@@ -9,17 +9,17 @@ license: MIT
 审查并引用产物证据。优先由未参与当前版本创作的 reviewer 执行；条件不允许时可以自检并如实标注。
 只写审查问题、审查结论和按负责人分组的修订要求，不在同一次审查中替 owner 修改创作来源。
 
-审查问题、影响和修订要求跟随项目 `short-drama.json#/language`，由 core
-`project_tool.py` 的 `status` 报出，不在本技能内硬编码语言。稳定的规则编号和 ID 保持原样。
+审查问题、影响和修订要求在项目内跟随 `short-drama.json#/language`，独立运行时跟随用户
+使用的语言，不在本技能内硬编码语言。稳定的规则编号和 ID 保持原样。
 本技能从不撰写提示词正文：引用被审查的提示词时按其原样引用，不译成审查语言，
 也不因为提示词语言与项目语言不同就判为缺陷——`#/format/prompt_language` 是创作者的选择。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界、需要从制作形态取得哪些输入，以及本阶段规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的待审产物与本任务直接输入；若当前目录是
+`short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少 core
+或任何其他技能都不是审查工作的阻断条件。[阶段契约](references/stage-contract.md) 给出
+本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
 ## 选择审查范围
 
@@ -50,6 +50,13 @@ license: MIT
 证据来自项目产物和已接受限制，而非负责人的自我解释。
 只有审查问题涉及“模板感、重复手法或 AI 味”时才读
 [anti-template-repair.md](references/anti-template-repair.md)，用其诊断、修订示范与误报反例。
+
+## Bounded execution
+
+Each invocation performs `one bounded review pass` over the explicitly selected artifacts or contiguous range.
+Record the verdict and owner-routed findings, report reviewed and remaining scope, then return control. In the same
+pass, `do not edit owner artifacts or start a re-review loop`. A revision and any later re-review are separate,
+explicit work units.
 
 ## 工作流
 
@@ -96,7 +103,8 @@ license: MIT
 - `REVISE`：存在结构、内容或限制冲突；
 - `PROVISIONAL`：关键输入不足，暂时无法完成判断。
 
-按 owner 分组；reviewer 发出修改要求，owner 修改来源。修改后重新读取当前版本，只复查受影响范围。
+按 owner 分组；reviewer 发出修改要求，owner 在另一个有界工作单元修改来源。后续明确请求复审时，
+重新读取当前版本并只复查受影响范围；本轮不自动进入修改或复审。
 CLI 的 `review` 记录 verdict、reviewer 标签和备注；详细 finding 文件用于创作沟通，不是批准所需的
 密码学证据包。
 

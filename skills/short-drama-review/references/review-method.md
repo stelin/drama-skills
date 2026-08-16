@@ -71,7 +71,7 @@ Resolve upstream meaning first; do not polish prompt wording when the shot or as
 ## Revision and re-review
 
 Group duplicate findings and route them to the owning skill. A revision request states the target outcome, preserve
-set and review scope to rerun. On re-review, read the current version, confirm the finding is addressed, check the
+set and review scope to rerun. On a later explicit re-review request, read the current version, confirm the finding is addressed, check the
 preserve set and close or retain each affected finding. A different reviewer is useful but not mechanically required.
 
 ## Anti-template review

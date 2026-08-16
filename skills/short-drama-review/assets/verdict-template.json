@@ -15,22 +15,12 @@
     "artifact": "审查/findings.jsonl",
     "hash": "<sha256>"
   },
-  "requested_review_mode": "independent_agent",
-  "effective_review_mode": "unattested",
-  "reviewer": {
-    "owner": "short-drama-review",
-    "kind": "unattested",
-    "independent": false,
-    "excluded_owner_skills": [
-      "short-drama-write"
-    ],
-    "provenance": null
-  },
+  "review_method": "uninvolved_reviewer | self_check",
+  "reviewer": "<honest reviewer label>",
   "structural_validation": "not_run",
   "verdict": "PROVISIONAL",
   "blocking_findings": [],
   "open_blocker_count": 0,
   "notes": [],
-  "required_reviewer_independence": true,
   "supersession_decisions": []
 }

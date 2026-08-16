@@ -10,7 +10,7 @@
 
 ## 1. 审查顺序
 
-先验证 refs、显式时长、camera interval、音频否定与 end equality，再由独立 reviewer 看 performability、action feasibility、camera motivation 和 semantic invention。Reviewer 写 finding，不改 motion、shot 或 screenplay。
+先验证 refs、显式时长、camera interval、音频否定与 end equality，再由审查者看 performability、action feasibility、camera motivation 和 semantic invention。Reviewer 写 finding，不改 motion、shot 或 screenplay。
 
 Finding 必须含 artifact/hash、引用片段、影响、required fix、owner、severity、status。禁止用 prompt 长度、动词数量、固定动作/秒或“AI 味”替代证据。
 

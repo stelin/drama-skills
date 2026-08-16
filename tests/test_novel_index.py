@@ -409,46 +409,6 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class OwnershipTests(unittest.TestCase):
-    """The analysis layer proposes; only develop may write the contract."""
-
-    def setUp(self) -> None:
-        script = SUITE / "skills/short-drama/scripts/project_tool.py"
-        spec = importlib.util.spec_from_file_location("sd_project_tool", script)
-        assert spec and spec.loader
-        self.project_tool = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.project_tool)
-
-    def test_declared_analysis_artifacts_are_owned(self) -> None:
-        for relative in (
-            "项目开发/source-analysis/_index.json",
-            "项目开发/source-analysis/_progress.md",
-            "项目开发/source-analysis/triage.md",
-            "项目开发/source-analysis/episode-candidates.jsonl",
-            "项目开发/source-analysis/adaptation-value.md",
-            "项目开发/source-analysis/chapters/ch-1-extract.md",
-        ):
-            with self.subTest(relative=relative):
-                self.assertEqual(
-                    self.project_tool._expected_path_owner(relative),
-                    "short-drama-novel-analyze",
-                )
-
-    def test_adaptation_contract_still_belongs_to_develop(self) -> None:
-        self.assertEqual(
-            self.project_tool._expected_path_owner("项目开发/adaptation-map.jsonl"),
-            "short-drama-develop",
-        )
-
-    def test_chapter_ownership_is_bounded_to_declared_markdown_files(self) -> None:
-        for relative in (
-            "项目开发/source-analysis/chapters/notes.json",
-            "项目开发/source-analysis/chapters/nested/ch-1-extract.md",
-        ):
-            with self.subTest(relative=relative):
-                self.assertIsNone(self.project_tool._expected_path_owner(relative))
-
-
 class CommandLineTests(unittest.TestCase):
     """The CLI is what the workflow actually runs, so its defaults are tested.
 

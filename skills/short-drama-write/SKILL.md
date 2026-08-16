@@ -8,12 +8,12 @@ license: MIT
 
 把单集意图写成可表演、可追踪且会改变故事状态的场景。`screenplay.md` 是唯一可编辑剧本源；卡片和节拍帮助推理，不是另一份正文。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界与规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的单集材料与本任务直接输入；若当前目录是
+`short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少 core
+或任何其他技能都不是写作工作的阻断条件。[阶段契约](references/stage-contract.md) 给出
+本阶段边界与规则表，无需读取其他技能的文件。
 
 ## 先判断入口
 
@@ -21,6 +21,13 @@ license: MIT
 2. **只有想法或口述大纲**：在本技能内制作最小单集卡与因果节拍；只有系列方向本身未定时才转 `$short-drama-develop`。
 3. **已有规范剧本**：保留作者语言，做定点修订；先说明改动意图和影响。
 4. **已有非规范文本，目的是进入后续制作**：保存原始字节；只提议场景标题、对白/动作分块、生产标签与索引所需的最小规范化。展示语义新增、删除、改写、未映射段落与不确定处，得到创作者接受后才能发布。不得补造故事引擎、节拍或新剧情。
+
+## Bounded execution
+
+- One work unit covers one explicit `scene or scene group`; a whole-episode request does not remove this boundary.
+- Validate and persist only that unit, then report its `included scope`, `remaining scope`, unresolved decisions and next useful unit.
+- After the report, `return control` to the creator; do not enter asset extraction, production or another scene group in the same turn.
+- Unless the current request is explicitly a review request, do not invoke `$short-drama-review` automatically.
 
 ## 每次执行
 
@@ -157,9 +164,10 @@ python3 <skill-dir>/scripts/voice_sheet_check.py 剧集/EP001/voice-record-sheet
 
 局部修订保留不相关段落。先展示语义差异与可能失效的下游产物，创作者接受后再发布。
 
-### 7. 交给审查
+### 7. 报告审查交接
 
-完成结构检查后，把当前文件交给 `$short-drama-review`；优先使用未参与当前版本创作的 reviewer，条件不允许时如实标注自检。若收到带证据的修订请求，只修改本技能拥有的单集卡、节拍或剧本，再请求复审。
+完成结构检查后只报告当前范围是否适合单独复核，不自动启动复核。若之后收到带证据的修订请求，
+只修改本技能拥有的单集卡、节拍或剧本；完成该有界修订后再次交还控制权，复审需要新的明确请求。
 
 ## 规则分级
 

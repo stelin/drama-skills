@@ -9,17 +9,17 @@ license: MIT
 先守住故事内容，再安排原文落实、空间和镜头，最后写冻结关键帧。不在这里写随时间
 变化的运动提示词，也不改写剧本或资产事实。
 
-镜头目的、边界说明与场次视觉计划是创作者读的，跟随 `short-drama.json#/language`；
-关键帧的**可复制提示词正文**跟随 `#/format/prompt_language`（默认 `en`）。
-两个值都由 core `project_tool.py` 的 `status` 报出，不要各自猜默认值，也不要用
+镜头目的、边界说明与场次视觉计划是创作者读的：项目内跟随 `short-drama.json#/language`，
+独立运行时跟随用户使用的语言。关键帧的**可复制提示词正文**在项目内跟随
+`#/format/prompt_language`，独立运行时由用户指定、未指定则为 `en`。不要用
 其中一个推断另一个。ID、规则编号和字段名在两者之下都保持原样。
 
-## 先定位套件
+## 开始前
 
-从本技能目录读取 `suite-ref.json`，按其中相对 `core_manifest` 定位唯一同级主技能与
-套件清单；确认声明的 core、contract、recipe 和清单 hash 一致后再读写项目。
-随后按 [阶段契约](references/stage-contract.md) 验证安装、读取 `status` 与本任务的直接输入，再进入本阶段。
-该文件同时给出本阶段的所有权边界、需要从制作形态取得哪些输入，以及本阶段规则表；本技能不读取其他技能的文件。
+本技能可独立安装和执行。先读取用户明确提供的剧本、资产与本任务直接输入；若当前目录是
+`short-drama` 项目且项目工具可用，可以读取 `status` 并使用其发布生命周期，但缺少 core
+或任何其他技能都不是分镜工作的阻断条件。[阶段契约](references/stage-contract.md) 给出
+本阶段边界、制作形态输入与规则表，无需读取其他技能的文件。
 
 ## 按需读取资料
 
@@ -46,6 +46,13 @@ license: MIT
 - 需要查看“剧本 → 原文落实 → 镜头 → 关键帧”的完整正例，或对白表演括注
   `（情绪）` 怎样同源投影到本镜表演状态与下游 `delivery`：
   [screenplay-to-keyframe-example.md](references/screenplay-to-keyframe-example.md)
+
+## Bounded execution
+
+- One work unit covers `one scene or contiguous shot range`; a whole-episode request is split at those boundaries.
+- Validate and persist only that unit, then report its `included scope`, `remaining scope`, unresolved coverage and next useful range.
+- After the report, `return control` to the creator; do not continue into another range, video prompts or production in the same turn.
+- Unless the current request is explicitly a review request, do not invoke `$short-drama-review` automatically.
 
 ## 工作流
 
@@ -182,12 +189,14 @@ python3 <skill-dir>/scripts/storyboard_check.py 剧集/EP001/storyboard/coverage
 4. 相对剧本原意发生的差异；
 5. 需要创作者接受的选择。
 
-本技能不能自行终审；终审交给 `$short-drama-review`。
+本技能不在本轮自动启动终审；需要 delivery verdict 时，把当前有界范围作为单独请求交给
+`$short-drama-review`。
 
 ## 修订
 
 若运动提示词环节要求修改镜头开始或结束边界，负责人仍是本技能。对照剧本原意审查
-提议，修改镜头，展示哪些旧产物已经关闭或刷新，并更新关键帧、运动提示词和终审。
+提议，修改当前有界范围的镜头与关键帧，并展示哪些旧产物已经关闭或需要刷新。运动提示词与
+终审属于后续的独立工作单元，本轮只报告它们的影响范围。
 运动提示词文件不得悄悄变成第二份边界事实。
 镜头重排、插入、拆分或合并时读取
 [shot-revision-identity.md](references/shot-revision-identity.md)，保留稳定身份、retire 被替代 ID，
