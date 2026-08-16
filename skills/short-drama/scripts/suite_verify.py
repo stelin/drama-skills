@@ -33,8 +33,9 @@ CHILD_REF_KEYS = {
 EXPECTED_TRUST_BOUNDARY = {
     "host_text_inference": True,
     "suite_scripts_outbound_network": False,
-    "media_generation": False,
-    "provider_api_calls": False,
+    "media_generation": "explicit_confirmation_only",
+    "provider_api_calls": "configured_external_adapters_only",
+    "adapter_shell": False,
     "private_source_runtime_access": False,
 }
 OPENAI_INTERFACE_KEYS = {"display_name", "short_description", "default_prompt"}
@@ -78,9 +79,8 @@ def is_local_noise(parts: tuple[str, ...]) -> bool:
 
 REQUIRED_FRONTMATTER_KEYS = {"name", "description"}
 # allowed-tools is spec-legal but deliberately not accepted here: it grants tool
-# access, and this suite's trust boundary (EXPECTED_TRUST_BOUNDARY) declares no
-# outbound network, no provider calls and no media generation. Accepting it
-# unvalidated would let a skill claim tools the declared boundary forbids.
+# access, while this suite keeps generation behind its own confirmed external
+# adapter contract. Accepting arbitrary tool grants would bypass that boundary.
 OPTIONAL_FRONTMATTER_KEYS = {"license", "metadata"}
 MAX_METADATA_LENGTH = 1024
 

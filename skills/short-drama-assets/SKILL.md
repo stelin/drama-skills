@@ -152,3 +152,7 @@ ID/variant 的提示词、镜头和 review，由相应 owner 按需刷新；不�
 occurrence 有明确 decision；未决项保持未决；身份/变体边界可信；连续性能够从
 incoming 走到 outgoing；创作者已经接受本次变更。最终 approval 必须交给
 `short-drama-review`，本 skill 只修订自己拥有的资产事实。
+
+创作者要求实际合成声音时，把已接受的声音身份、参考音频和录音表交给
+`$short-drama-produce`。该技能会先展示精确任务预览并等待创作者明确确认；本技能不调用
+语音服务，也不把资产接受状态当作生产授权。

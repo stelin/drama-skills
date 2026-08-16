@@ -35,6 +35,7 @@ license: MIT
 | 写人物、地点、道具和 Look Development 图片提示词 | `$short-drama-image-prompts` |
 | 做覆盖设计、镜头和冻结关键帧 | `$short-drama-storyboard` |
 | 写动作、表演、运镜、声音视频提示词 | `$short-drama-video-prompts` |
+| 按已确认规格实际生成图片、视频或 TTS | `$short-drama-produce` 先展示本次 job，得到明确确认后才执行 |
 | 定制作形态、视觉方向或 Look Development 路径 | `$short-drama` |
 | 校验、审稿或发修订请求 | `$short-drama-review` |
 | 打开创作台、看内容和进度 | `$short-drama dashboard` |
@@ -71,7 +72,7 @@ Dashboard 是项目内容的轻量展示与有限文本编辑层，核心能力�
 
 4. 回报脚本打印的完整回环地址与停止方式，并保持进程运行。
 
-Dashboard 不扫描 workspace 外部，不保存密钥，不连接外部服务，也不承担工作流编排。它按项目
+Dashboard 不扫描 workspace 外部，不保存密钥，不连接生产 adapter，也不承担工作流编排。它按项目
 和剧集展示正文、结构化卡片以及已有图片/音频/视频；保存只表示保存文件，不代表创作者确认。
 每次启动使用独立本机会话，项目 API 只接受该会话。参数与安全边界见
 [lifecycle-commands.md](references/lifecycle-commands.md#dashboard-启动)。
@@ -116,7 +117,8 @@ Dashboard 不扫描 workspace 外部，不保存密钥，不连接外部服务�
 
 ## 边界
 
-- 当前技能版本只创作与检查文本规格，不直接调用媒体生成服务。
+- 图片、视频和 TTS 生产只由 `$short-drama-produce` 在展示准确 job 并取得本次明确确认后执行；
+  其他技能不直接调用生成服务。
 - 运行时不检索外部或非公开生产来源。
 - 不把别处案例提升为项目定律。
 - 语义冲突不静默修复；不明外部改动由创作者选择保留或重做。

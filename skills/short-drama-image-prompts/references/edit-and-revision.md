@@ -118,4 +118,5 @@ Continuity impact：预期对应哪个 accepted State/binding，有效到哪里�
 - 候选与 accepted 分离，diff 可读、可拒绝，预览可复制；
 - accept 顺序是 spec commit 后 rerender；reject 不变；
 - restore/adopt 都有预览，第三种 live hash 保留为冲突；
-- 全流程不调用媒体生成或 provider API。
+- 本提示词修订流程不调用媒体生成或 provider API；实际生产交 `$short-drama-produce`
+  并对精确任务预览单独确认。

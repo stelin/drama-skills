@@ -14,7 +14,7 @@
 ```text
 development? -> screenplay -> assets -> image prompts
                          \-> storyboard -> video prompts
-                                     \-> review -> delivery
+                         \-> confirmed production -> review -> delivery
 ```
 
 This is a routing map, not a mandatory waterfall. Direct entry is valid, and Look Development is optional.
@@ -33,6 +33,7 @@ Each artifact records only the project files it directly read. There is no recur
 | image composition and image prompt specs | image-prompts |
 | coverage, shot purpose, duration, boundaries and keyframes | storyboard |
 | motion, performance, camera/audio realization and delivery containers | video-prompts |
+| confirmed media job, adapter dispatch and run record | produce |
 | long-source index and adaptation candidates | novel-analyze |
 | findings, verdicts and bounded revision requests | review |
 | artifact status and delivery checksums | shared core |
@@ -83,9 +84,10 @@ creator explicitly chose them as format constraints.
 
 ## Trust and file safety
 
-Deterministic scripts do not make outbound connections. Released skills do not retrieve external or private
-production sources at runtime. Do not ship private identifiers, plot passages, prompt sentences, URLs, user data or
-credentials.
+Deterministic suite scripts do not make outbound connections. Confirmed production may launch a project-external,
+locally configured adapter without a shell; that adapter owns any provider SDK/API access and reads credentials from
+its environment or system store. Released skills do not retrieve external or private production sources at runtime.
+Do not ship private identifiers, plot passages, prompt sentences, URLs, user data or credentials.
 
 Creator input under `输入/` is immutable to publication commands. Machine state lives under `.short-drama/` and
 delivery under `交付/`; neither is an owner publication target. Text/JSON publication validates all sources before

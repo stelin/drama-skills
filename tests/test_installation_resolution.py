@@ -353,7 +353,7 @@ class InstallationResolutionTests(unittest.TestCase):
             skills = copy_installed_suite(temp)
             manifest = skills / "short-drama/suite-manifest.json"
             document = json.loads(manifest.read_text(encoding="utf-8"))
-            document["trust_boundary"]["media_generation"] = True
+            document["trust_boundary"]["media_generation"] = "unrestricted"
             manifest.write_text(json.dumps(document), encoding="utf-8")
 
             completed = subprocess.run(
@@ -366,13 +366,13 @@ class InstallationResolutionTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 2)
             self.assertIn("trust_boundary", completed.stderr)
 
-    def test_rebuilt_manifest_cannot_enable_forbidden_runtime_capabilities(self) -> None:
+    def test_rebuilt_manifest_cannot_bypass_confirmation_or_adapter_boundaries(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp = Path(directory)
             skills = copy_installed_suite(temp)
             manifest = skills / "short-drama/suite-manifest.json"
             document = json.loads(manifest.read_text(encoding="utf-8"))
-            document["trust_boundary"]["media_generation"] = True
+            document["trust_boundary"]["media_generation"] = "unrestricted"
             manifest.write_text(json.dumps(document), encoding="utf-8")
             rebuilt = subprocess.run(
                 [sys.executable, str(UPDATE_TOOL), str(skills / "short-drama")],

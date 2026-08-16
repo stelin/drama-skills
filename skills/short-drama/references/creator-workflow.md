@@ -22,6 +22,7 @@ is exact source extraction, not workflow state.
 | Create image prompt specs | `short-drama-image-prompts` | current asset facts |
 | Design shots/keyframes | `short-drama-storyboard` | current script and asset facts |
 | Create video prompt specs | `short-drama-video-prompts` | current shots/keyframes |
+| Produce images, video or TTS | `short-drama-produce` | current bounded job plus explicit confirmation after preview |
 | Review | `short-drama-review` | bounded artifact set |
 | Initialize, continue, show or deliver | `short-drama` | project path or target path |
 
@@ -38,6 +39,8 @@ direction / story development (when needed)
           /        \
  image prompts   storyboard -> video prompts
           \        /
+       confirmed production
+                |
              review -> delivery
 ```
 
@@ -66,6 +69,6 @@ it, adopt the change into the spec, or reconcile both explicitly.
 
 ## Delivery boundary
 
-Deliver only explicitly selected, current, approved text and JSON. Exclude private sources, credentials, absolute
-paths, machine state and binary media from the text package. `verify` checks delivery checksums; it does not judge
-creative quality.
+Deliver only explicitly selected, current, approved text and JSON in the text package. Produced media remains in
+its project production directory and may be exported by a separate creator-approved media handoff. Exclude private
+sources, credentials, absolute paths and machine state. `verify` checks checksums; it does not judge creative quality.

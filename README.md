@@ -7,12 +7,13 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/github/license/worldwonderer/drama-skills)](LICENSE)
 
-面向编剧、漫剧工作室和编导的 AI 短剧创作工作流。九个技能把一个点子或一部长篇材料，
+面向编剧、漫剧工作室和编导的 AI 短剧创作工作流。十个技能把一个点子或一部长篇材料，
 一路做成分集剧本、资产设定、图片提示词、分镜关键帧、视频提示词和审查记录，
 用清晰的所有权、创作者确认与连续性契约衔接。适配 Claude Code、Codex 和其他
 支持 Agent Skill 规范的运行环境。
 
-产出是文本：剧本、设定、提示词、审查记录。
+核心产出是文本：剧本、设定、提示词、审查记录。提示词预览并经用户明确确认后，也可通过
+项目外配置的 adapter 执行图片、视频和 TTS 生产。
 
 ## 由来
 
@@ -24,8 +25,9 @@
 让制作人直接用 agent CLI 加文件维护工程、生成提示词，确认之后再送去生成——结果意外地顺手。
 现在留在自建工具里的，只剩排队抽卡。
 
-**刻意不含生图与生视频**：为防止未经确认的提示词误触发生成、造成预算浪费，本项目
-不调用真正的图片、视频或音频生成服务。提示词先落进文件、由人确认，再进入生成环节。
+**刻意把确认放在生产之前**：提示词先落进文件，生产 skill 展示本次准确数量、内容、参考、
+参数、输出和 adapter；用户看到预览并明确确认后才执行。任何内容或直接输入变化都会让确认
+失效，已启动的失败任务也不能无确认重试。供应商凭据不进入项目，套件不写死某家 API。
 
 ## 安装
 
@@ -37,7 +39,7 @@ Codex 等支持导入 GitHub 仓库的智能体：
 ```
 
 <details>
-<summary>手动链接（九个技能目录必须保持同级）</summary>
+<summary>手动链接（十个技能目录必须保持同级）</summary>
 
 ```bash
 git clone https://github.com/worldwonderer/drama-skills.git && cd drama-skills
@@ -84,13 +86,16 @@ done
 用 $short-drama-storyboard 给关键场次比较导演方案、接受场次视觉计划，再做正式分镜
 用 $short-drama-video-prompts 把分镜逐镜翻译成视频提示词
 
-# 4. 审查（最好由未参与当前版本创作的人或上下文执行）
+# 4. 明确确认后投产
+用 $short-drama-produce 预览第 1 集已接受的图片、视频或 TTS 任务；等我确认后再执行
+
+# 5. 审查（最好由未参与当前版本创作的人或上下文执行）
 用 $short-drama-review 审查第 1 集的剧本与提示词
 ```
 
 一集完整的摘录链条见 [demo/](demo/)：剧本 → 资产设定 → 分镜 → 视频提示词。
 
-## 九个技能
+## 十个技能
 
 ```mermaid
 flowchart LR
@@ -104,6 +109,7 @@ flowchart LR
     img["图片提示词<br/>$short-drama-image-prompts"]:::phase
     sb["分镜/关键帧<br/>$short-drama-storyboard"]:::phase
     vid["视频提示词<br/>$short-drama-video-prompts"]:::phase
+    prod["确认后生产<br/>$short-drama-produce"]:::phase
     rev["审查<br/>$short-drama-review"]:::final
     pkg["文本交付包"]:::final
 
@@ -111,8 +117,9 @@ flowchart LR
     dev -.可选.-> write --> assets
     assets --> img
     assets --> sb --> vid
-    img --> rev
-    vid --> rev --> pkg
+    img --> prod
+    vid --> prod
+    prod --> rev --> pkg
 ```
 
 | 技能 | 职责 |
@@ -125,6 +132,7 @@ flowchart LR
 | `short-drama-image-prompts` | Lookdev 风格帧、角色/场景/道具参考板提示词与定点修改说明 |
 | `short-drama-storyboard` | 可选场次视觉计划与 Coverage Audition、原文落实、镜头、边界和冻结关键帧 |
 | `short-drama-video-prompts` | 单镜动作、多人物表演与注意交接、摄影、声音、起止状态与补拍说明 |
+| `short-drama-produce` | 展示有边界的图片/视频/TTS 任务，取得本次明确确认后通过外部 adapter 执行并记录结果 |
 | `short-drama-review` | 结构/内容审查、授权生产观察的项目级校准诊断与修订结论 |
 
 `$short-drama` 是入口路由，负责初始化、继续、显示状态和交付，把具体工作转给对应技能。
@@ -137,7 +145,8 @@ flowchart LR
 
 三条单帧提示词路径职责不同：项目级 `lookdev_frame` 检验已接受视觉方向；资产提示词固定人物、
 地点、道具的可复用事实；`storyboard` 的关键帧只投影本镜 start（执行方式需要时可增加只投影
-`end_boundary` 的 end 帧）。三者都只交付文本，不调用图片模型。
+`end_boundary` 的 end 帧）。三者都只负责文本规格；实际生成统一交给 `$short-drama-produce`
+在展示准确任务并取得本次确认后执行。
 
 关键场次可以在正式 shots 前增加一层稀疏导演决策：先比较真正不同的信息时机、观看位置与
 表演空间，再接受场次视觉计划，让构图、空间、摄影和声音共同完成一个转向。普通场景跳过，

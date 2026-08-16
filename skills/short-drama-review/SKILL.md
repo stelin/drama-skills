@@ -31,6 +31,7 @@ license: MIT
 - `image_prompts`
 - `storyboard_keyframes`
 - `video_prompts`
+- `production_outputs`
 - `full_episode`
 - `delivery_privacy`
 - `project_calibration`
@@ -124,9 +125,10 @@ CLI 的 `review` 记录 verdict、reviewer 标签和备注；详细 finding 文�
 
 ## 边界
 
-- 不生成或查看已渲染媒体。
-- 不从文字产物声称脸部一致、表演、口型、混音、剪辑或市场表现；只能引用授权文字观察中
-  直接记录的现象，并保留其范围与限制。
+- 不提交图片、视频或 TTS 任务，不配置 adapter，也不把 Dashboard 操作当作生产授权。
+- `production_outputs` 只复核项目内当前版本的已有媒体；运行环境不能读取或播放时明确记录
+  限制，不从文字产物或 adapter 状态推断脸部一致、表演、口型、混音、剪辑或市场表现。
+- 生产观察必须绑定准确的 prompt/spec/reference/config 与结果版本，并保留其范围与限制。
 - 不把非公开制作观察变成通用审查标准。
 - 审查问题只带创作者修订所需的必要证据；不泄露非公开输入、完整创作文本、
   网址或机器路径。
