@@ -51,7 +51,7 @@ license: MIT
 - 新身份、复用、变体或未决：[身份与变体](references/identity-vs-variant.md)
 - 人物识别与造型层次：[人物与造型](references/character-and-look.md)
 - 地点地理、视图和固定锚点：[地点与视图](references/location-and-view.md)
-- 功能道具、所有权和状态变化：[道具与状态](references/prop-and-state.md)
+- 功能道具、所有权、状态变化，或画面上的可读文字与标识：[道具与状态](references/prop-and-state.md)
 - 声音参考的身份与授权边界：[声音方向](references/voice-direction.md)
 - 跨场、跨镜、跨集状态：[连续性变化](references/continuity-delta.md)
 - 完成前做一次资产漏项检查：[资产审查清单](references/asset-review-checklist.md)
