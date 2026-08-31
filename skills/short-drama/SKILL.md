@@ -54,6 +54,8 @@ license: MIT
 python3 {技能目录}/scripts/project_tool.py init ./my-drama --title "示例短剧"
 ```
 
+直接输入已经确认创作者说明语言、提示词语言或画幅时，首次 `init` 就带上对应的 `--language`、
+`--prompt-language`、`--aspect-ratio`；只省略未确认项，不先落默认值再改写。
 `init` 只建立配置和空目录；第一次创作时再把文档写入 `剧集/<EP>/`，不预建空文件。
 项目定位与安全写入见 [运行预检](references/runtime-preflight.md)。用户明确要求 Dashboard 时运行：
 
