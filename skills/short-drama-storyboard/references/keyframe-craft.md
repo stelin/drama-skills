@@ -59,10 +59,12 @@ composition, camera/lens, frame-only staging, and exclusions.
 | 机位在轴线哪一侧、俯仰角度、焦段意图 | 越轴；正反打方向对不上 |
 | 光从哪来、什么质感 | 同场光位逐镜跳变 |
 | 每个在场者的姿态、朝向、手部、持物 | 下一镜接不住，道具凭空易手 |
-| 哪些与上一镜相同 | 执行端把"没写"读成"可以变" |
+| 哪些与上一镜相同 | 执行端把"没写"读成"可以变"；必须重述本镜可见资产的最小执行锚点，不能只写“同前” |
 
-最后一条最容易漏，也最便宜：与上一镜一致的部分**写一句"与上一镜相同"即可**，
-不必重述细节；真正变了的才展开写。这一句是连续性的承载点。
+最后一条最容易漏。条目说明可以写“与上一镜相同”帮助创作者阅读，但可复制正文必须写出本镜起点
+可见资产的最小执行锚点和当前 Look/状态。有真实起始参考图时可以删除它已经精确承载的丰富重复描述，
+但参考图可能只控制构图或其中一个资产，不能豁免整镜。“同前”“same character”“保持已有外观”
+都不是画面。
 
 **写紧**：一件事只说一次，能并进一句就不另起一句。上表十二项写满大约五百字就够；
 写到八百字往上，多出来的通常是连接词、铺垫句和把同一件事换个说法再说一遍——它们不增加
@@ -81,8 +83,11 @@ composition, camera/lens, frame-only staging, and exclusions.
 排除：无动作过程，无雨丝拖影。
 ```
 
-The keyframe must name the matching visible entry in `视觉设定.md`, or the `IMG-...` prompt item in
-`图片提示词.md`; `视觉设定.md` itself does not define `IMG-...` IDs. A frozen frame may determine whether the surface
+The shot's visible-asset line must name the matching entry in `视觉设定.md`, and its visual-source lines must map
+that item to an `IMG-...` prompt item or the textual setting itself. `视觉设定.md` does not define `IMG-...` IDs.
+The shot's static visual anchor starts the copyable keyframe prompt. Without a real input image, it carries every
+start-visible item's prompt-language execution anchor; assets that first appear during motion stay out of the frozen
+frame. A frozen frame may determine whether the surface
 is legible in this composition; it may not replace the exact wording or policy
 with an untraceable prose instruction. If the policy is still undecided, say so
 instead of inventing a hidden candidate state.

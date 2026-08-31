@@ -166,9 +166,10 @@ def bullet_fields(document: str) -> dict[str, str]:
     return dict(re.findall(r"^- ([^：\n]+)：(.+)$", document, re.MULTILINE))
 
 
-def image_prompt_references(value: str) -> list[tuple[str, str, str]]:
+def image_prompt_references(value: str) -> list[tuple[str, str, str, str, str]]:
     return re.findall(
-        r"\b(IMG-[A-Z0-9-]+)《([^》]+)》（控制：([^）]+)）",
+        r"\b(IMG-[A-Z0-9-]+)《([^》]+)》"
+        r"（对应：([^；「」]+)「([^」]+)」；控制：([^）]+)）",
         value,
     )
 
@@ -294,7 +295,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                 referenced = {item[0] for item in references}
                 self.assertTrue(referenced)
                 self.assertLessEqual(referenced, image_headings.keys())
-                for image_id, label, _ in references:
+                for image_id, label, _, _, _ in references:
                     self.assertEqual(label, image_headings[image_id])
 
     def test_storyboard_image_prompt_references_explain_labels_and_scope(self) -> None:
@@ -307,8 +308,10 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                     len(references),
                     len(re.findall(r"\bIMG-[A-Z0-9-]+\b", value)),
                 )
-                for _, label, scope in references:
+                for _, label, asset_kind, asset_label, scope in references:
                     self.assertRegex(label, r"[\u4e00-\u9fff]")
+                    self.assertRegex(asset_kind, r"[\u4e00-\u9fff]")
+                    self.assertRegex(asset_label, r"[\u4e00-\u9fff]")
                     self.assertRegex(scope, r"[\u4e00-\u9fff]")
 
     def test_storyboard_reference_contract_supports_independent_state_axes(
@@ -398,6 +401,68 @@ class CreatorFirstGoldenTests(unittest.TestCase):
 
     def test_creator_markdown_validator_accepts_the_golden_episode(self) -> None:
         self.assertEqual(creator_markdown_check.validate_episode(EPISODE, ROOT), [])
+
+    def test_validator_ignores_an_explicit_os_only_person_section(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            visual = episode / "视觉设定.md"
+            visual.write_text(
+                visual.read_text(encoding="utf-8")
+                + "\n## 画外人物 · 许阿姨\n\n"
+                "- 出现边界：只通过 `[OS]` 台词存在，任何画面或反射均不出现。\n"
+                "- 视觉资产：不建立；她从不入画。\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                creator_markdown_check.validate_episode(episode, project), []
+            )
+
+    def test_no_external_reference_accepts_natural_equivalent_phrases(self) -> None:
+        variants = (
+            "无（未提供真实输入参考图）。",
+            "无真实参考图。",
+            "无外部输入参考图。",
+        )
+        for variant in variants:
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                episode = project / "剧集/EP001"
+                shutil.copytree(EPISODE, episode)
+                images = episode / "图片提示词.md"
+                document = images.read_text(encoding="utf-8")
+                images.write_text(
+                    document.replace(
+                        "无外部参考；三视图必须保持同一脸型、身高比例和服装细节。",
+                        variant,
+                        1,
+                    ),
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    creator_markdown_check.validate_episode(episode, project), []
+                )
+
+    def test_visual_basis_filename_can_scope_multiple_items(self) -> None:
+        values = (
+            "《视觉设定.md》·人物「江辰」（控制：身份、造型）；"
+            "地点「旧走廊」（控制：空间地理、光向）。",
+            "《视觉设定.md》·人物「江辰」（控制：身份、造型）；"
+            "《视觉设定.md》·地点「旧走廊」（控制：空间地理、光向）。",
+        )
+        for value in values:
+            with self.subTest(value=value):
+                errors: list[str] = []
+                assets = creator_markdown_check._visual_basis_assets(
+                    value,
+                    owner="SHOT-EP001-001",
+                    errors=errors,
+                )
+                self.assertEqual(errors, [])
+                self.assertEqual(
+                    assets, {("人物", "江辰"), ("地点", "旧走廊")}
+                )
 
     def test_validator_cli_survives_a_non_utf8_stdout_encoding(self) -> None:
         """回归：CLI 用 print(f"...") 直接写 stdout，而诊断与剧集路径都是中文。
@@ -496,8 +561,8 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             ),
             "missing static anchor": (
                 "视频提示词.md",
-                "- 静态视觉锚点：A clean young East Asian man's right hand rests palm-down",
-                "- 静态视觉锚点：无\n- 删除字段：A clean young East Asian man's right hand rests palm-down",
+                "- 静态视觉锚点：A dark-brown glass-covered wooden desk, blue-grey file-box wall",
+                "- 静态视觉锚点：无\n- 删除字段：A dark-brown glass-covered wooden desk, blue-grey file-box wall",
                 "文生视频缺少静态视觉锚点",
             ),
             "duplicate reference field": (
@@ -545,18 +610,16 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             ),
             "motion drops a locked surface": (
                 "视频提示词.md",
-                "> A twenty-two-year-old East Asian man with a lean long face, high brow "
-                "ridge, deep-set eyes and short cropped black hair wears buttoned "
+                "> A lean young East Asian man with short cropped black hair wears buttoned "
                 "olive-green stand-collar service dress",
-                "> A twenty-two-year-old East Asian man with a lean long face, high brow "
-                "ridge, deep-set eyes and short cropped black hair wears a buttoned navy "
-                "mandarin-collar tunic",
+                "> A lean young East Asian man with short cropped black hair wears a buttoned "
+                "navy mandarin-collar tunic",
                 "LOCK-JIANGCHEN-DRESS: MOTION-EP001-003 可复制提示词缺少锁面",
             ),
             "keyframe drops a locked surface": (
                 "分镜.md",
-                "in buttoned olive-green stand-collar service dress",
-                "in a buttoned navy mandarin-collar tunic",
+                "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dress",
+                "> A lean young East Asian man with short cropped black hair wears a buttoned navy mandarin-collar tunic",
                 "LOCK-JIANGCHEN-DRESS: SHOT-EP001-003 冻结关键帧提示词缺少锁面",
             ),
             "image plate drops a locked surface": (
@@ -567,21 +630,69 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             ),
             "a locked surface only inside a negative prompt": (
                 "分镜.md",
-                "in buttoned olive-green stand-collar service dress",
-                "in a buttoned navy mandarin-collar tunic, no olive-green stand-collar service dress",
+                "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dress",
+                "> A lean young East Asian man with short cropped black hair wears a buttoned navy mandarin-collar tunic, no olive-green stand-collar service dress",
                 "LOCK-JIANGCHEN-DRESS: SHOT-EP001-003 冻结关键帧提示词缺少锁面",
             ),
             "a locked surface glued to a prefix": (
                 "分镜.md",
-                "in buttoned olive-green stand-collar service dress",
-                "in a fake-olive-green stand-collar service dress",
+                "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dress",
+                "> A lean young East Asian man with short cropped black hair wears buttoned fake-olive-green stand-collar service dress",
                 "LOCK-JIANGCHEN-DRESS: SHOT-EP001-003 冻结关键帧提示词缺少锁面",
             ),
             "a locked surface glued to a suffix": (
                 "分镜.md",
-                "olive-green stand-collar service dress, lean long face",
-                "olive-green stand-collar service dressing-gown, lean long face",
+                "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dress before",
+                "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dressing-gown before",
                 "LOCK-JIANGCHEN-DRESS: SHOT-EP001-003 冻结关键帧提示词缺少锁面",
+            ),
+            "visible person loses its image source": (
+                "分镜.md",
+                "IMG-ZHOUBOSEN-SHEET《周薄森角色板》（对应：人物「周薄森」；控制：身份、体态、本集常服）；",
+                "",
+                "SHOT-EP001-002: 可见资产缺少视觉来源: 人物「周薄森」",
+            ),
+            "named boundary person is omitted from visible assets": (
+                "分镜.md",
+                "人物「周薄森」（出现：全程）；",
+                "",
+                "SHOT-EP001-002: 边界点名了 人物「周薄森」，但可见资产没有列出",
+            ),
+            "image source maps to the wrong asset": (
+                "分镜.md",
+                "IMG-ZHOUBOSEN-SHEET《周薄森角色板》（对应：人物「周薄森」；控制：身份、体态、本集常服）",
+                "IMG-ZHOUBOSEN-SHEET《周薄森角色板》（对应：人物「江晨」；控制：身份、体态、本集常服）",
+                "SHOT-EP001-002: 可见资产缺少视觉来源: 人物「周薄森」",
+            ),
+            "visual asset loses its execution anchor": (
+                "视觉设定.md",
+                "- 执行锚点：a broad square-faced middle-aged East Asian man with a grey-templed crew cut",
+                "- 执行锚点：无",
+                "人物「周薄森」: 缺少执行锚点",
+            ),
+            "storyboard anchor depends on hidden context": (
+                "分镜.md",
+                "- 静态视觉锚点：A dark-brown glass-covered wooden desk, blue-grey file-box wall",
+                "- 静态视觉锚点：same as the previous shot; A dark-brown glass-covered wooden desk, blue-grey file-box wall",
+                "SHOT-EP001-001: 静态视觉锚点依赖未提供的上下文",
+            ),
+            "motion anchor drifts from storyboard": (
+                "视频提示词.md",
+                "- 静态视觉锚点：A dark-brown glass-covered wooden desk, blue-grey file-box wall",
+                "- 静态视觉锚点：A different room with a blue-grey file-box wall",
+                "MOTION-EP001-001: 静态视觉锚点与 SHOT-EP001-001 不一致",
+            ),
+            "motion omits a character revealed after the start frame": (
+                "视频提示词.md",
+                "revealing a lean young East Asian man with short cropped black hair",
+                "revealing the young man",
+                "MOTION-EP001-008: 可复制提示词缺少 人物「江晨」 的执行锚点",
+            ),
+            "image prompt omits the mapped asset execution anchor": (
+                "图片提示词.md",
+                "a broad square-faced middle-aged East Asian man with a grey-templed crew cut",
+                "a tired middle-aged officer",
+                "IMG-ZHOUBOSEN-SHEET 可复制提示词缺少 人物「周薄森」 的执行锚点",
             ),
             "a star-bulleted continuity lock is not silently dropped": (
                 "视觉设定.md",
@@ -637,6 +748,49 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                 path.write_text(document.replace(old, new, 1), encoding="utf-8")
                 errors = creator_markdown_check.validate_episode(episode, project)
                 self.assertTrue(any(expected in error for error in errors), errors)
+
+    def test_a_real_reference_does_not_waive_other_visible_asset_anchors(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            (project / "输入").mkdir()
+            (project / "输入/composition.png").write_bytes(b"composition")
+            declaration = (
+                "REF-COMPOSITION（顺序：1）· 输入/composition.png《构图参考》"
+                "（控制：构图；不得控制：人物身份、造型、道具）"
+            )
+            for name in ("分镜.md", "视频提示词.md"):
+                path = episode / name
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "- 输入参考图：无。", f"- 输入参考图：{declaration}"
+                    ),
+                    encoding="utf-8",
+                )
+            video = episode / "视频提示词.md"
+            document = video.read_text(encoding="utf-8").replace(
+                "- 生成方式：文生视频", "- 生成方式：图生视频"
+            )
+            self.assertIn(
+                "revealing a lean young East Asian man with short cropped black hair",
+                document,
+            )
+            video.write_text(
+                document.replace(
+                    "revealing a lean young East Asian man with short cropped black hair",
+                    "revealing the young man",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            errors = creator_markdown_check.validate_episode(episode, project)
+            self.assertIn(
+                "MOTION-EP001-008: 可复制提示词缺少 人物「江晨」 的执行锚点",
+                errors,
+            )
 
     def test_creator_markdown_validator_rejects_missing_and_reordered_ref_files(
         self,
@@ -766,8 +920,8 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                 storyboard = episode / "分镜.md"
                 storyboard.write_text(
                     storyboard.read_text(encoding="utf-8").replace(
-                        "in buttoned olive-green stand-collar service dress",
-                        "in a buttoned navy mandarin-collar tunic",
+                        "> A lean young East Asian man with short cropped black hair wears buttoned olive-green stand-collar service dress",
+                        "> A lean young East Asian man with short cropped black hair wears a buttoned navy mandarin-collar tunic",
                         1,
                     ),
                     encoding="utf-8",
@@ -904,14 +1058,14 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         expected = {
             "short-drama-write": {*(f"SCR-{number:02d}" for number in range(1, 18))},
             "short-drama-assets": {
-                *(f"AST-{number:02d}" for number in range(1, 13)),
+                *(f"AST-{number:02d}" for number in range(1, 14)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-image-prompts": {
-                *(f"IMG-{number:02d}" for number in range(1, 14))
+                *(f"IMG-{number:02d}" for number in range(1, 15))
             },
             "short-drama-storyboard": {
-                *(f"SHT-{number:02d}" for number in range(1, 22)),
+                *(f"SHT-{number:02d}" for number in range(1, 24)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-video-prompts": {

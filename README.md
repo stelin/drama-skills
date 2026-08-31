@@ -127,6 +127,7 @@ flowchart LR
     assets --> img
     assets --> sb --> vid
     img --> prod
+    sb -.冻结关键帧图.-> prod
     vid --> prod
     prod --> rev --> pkg
 ```

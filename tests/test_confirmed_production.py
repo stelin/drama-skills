@@ -195,6 +195,40 @@ class ConfirmedProductionTests(unittest.TestCase):
         )
         return path
 
+    def write_creator_keyframe_image_job(self, root: Path) -> Path:
+        prompt = "A woman pauses beside a rain-dark door in a frozen vertical frame."
+        source = root / "剧集/EP001/分镜.md"
+        source.write_text(
+            "# EP001 分镜\n\n"
+            "## SHOT-EP001-001 · 门外停步\n\n"
+            "- 输入参考图：无。\n\n"
+            "### 冻结关键帧提示词\n"
+            f"> {prompt}\n",
+            encoding="utf-8",
+        )
+        path = root / "creator-keyframe-image-job.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "schema_version": "1.0",
+                    "job_id": "EP001-SHOT001-KEYFRAME",
+                    "modality": "image",
+                    "adapter": "fixture",
+                    "prompt": prompt,
+                    "source": "剧集/EP001/分镜.md",
+                    "source_entry": "SHOT-EP001-001",
+                    "outputs": [
+                        "剧集/EP001/制作成果/image/SHOT-EP001-001-start.png"
+                    ],
+                    "parameters": {},
+                    "overwrite": False,
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        return path
+
     def adapter_config(self, directory: str, *, fail: bool = False) -> Path:
         command = [sys.executable, str(FIXTURE_ADAPTER)]
         if fail:
@@ -266,13 +300,17 @@ class ConfirmedProductionTests(unittest.TestCase):
             )
 
     def test_creator_image_source_entry_supports_no_ref_and_real_ref(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = self.make_project(directory)
-            preview = production_tool.prepare_job(
-                root, self.write_creator_image_job(root)
-            )
-            self.assertEqual(preview["source_entry"], "IMG-EP001-HERO")
-            self.assertEqual(preview["references"], [])
+        for declaration in ("无外部参考", "无真实参考图。"):
+            with self.subTest(declaration=declaration), tempfile.TemporaryDirectory() as directory:
+                root = self.make_project(directory)
+                preview = production_tool.prepare_job(
+                    root,
+                    self.write_creator_image_job(
+                        root, reference_declaration=declaration
+                    ),
+                )
+                self.assertEqual(preview["source_entry"], "IMG-EP001-HERO")
+                self.assertEqual(preview["references"], [])
 
         with tempfile.TemporaryDirectory() as directory:
             root = self.make_project(directory)
@@ -289,6 +327,52 @@ class ConfirmedProductionTests(unittest.TestCase):
                 ),
             )
             self.assertEqual(preview["references"], ["输入/reference.png"])
+
+    def test_creator_storyboard_shot_can_source_a_keyframe_image_job(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.make_project(directory)
+            job = self.write_creator_keyframe_image_job(root)
+
+            preview = production_tool.prepare_job(root, job)
+
+            self.assertEqual(preview["modality"], "image")
+            self.assertEqual(preview["source"], "剧集/EP001/分镜.md")
+            self.assertEqual(preview["source_entry"], "SHOT-EP001-001")
+            self.assertEqual(preview["references"], [])
+            production_tool.confirm_job(
+                root,
+                job_id=preview["job_id"],
+                confirmation=preview["confirmation"],
+            )
+            result = production_tool.run_job(
+                root,
+                job_id=preview["job_id"],
+                adapter_config=self.adapter_config(directory),
+            )
+            self.assertEqual(result["state"], "succeeded")
+            self.assertTrue((root / preview["outputs"][0]).is_file())
+
+    def test_creator_source_requires_the_prompt_heading_owned_by_its_file(self) -> None:
+        cases = (
+            (self.write_creator_image_job, "### 可复制提示词", "### 冻结关键帧提示词"),
+            (
+                self.write_creator_keyframe_image_job,
+                "### 冻结关键帧提示词",
+                "### 可复制提示词",
+            ),
+        )
+        for writer, expected, wrong in cases:
+            with self.subTest(writer=writer.__name__), tempfile.TemporaryDirectory() as directory:
+                root = self.make_project(directory)
+                job = writer(root)
+                document = json.loads(job.read_text(encoding="utf-8"))
+                source = root / document["source"]
+                source.write_text(
+                    source.read_text(encoding="utf-8").replace(expected, wrong, 1),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(ValueError, "no copyable prompt"):
+                    production_tool.prepare_job(root, job)
 
     def test_source_entry_rejects_unbound_refs_wrong_kind_and_ambiguous_markdown(
         self,
@@ -318,7 +402,20 @@ class ConfirmedProductionTests(unittest.TestCase):
             document = json.loads(job.read_text(encoding="utf-8"))
             document["source_entry"] = "MOTION-EP001-001"
             job.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "does not match the job modality"):
+            with self.assertRaisesRegex(
+                ValueError, "does not match the canonical creator source"
+            ):
+                production_tool.prepare_job(root, job)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.make_project(directory)
+            job = self.write_creator_keyframe_image_job(root)
+            document = json.loads(job.read_text(encoding="utf-8"))
+            document["source_entry"] = "IMG-EP001-HERO"
+            job.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(
+                ValueError, "does not match the canonical creator source"
+            ):
                 production_tool.prepare_job(root, job)
 
         with tempfile.TemporaryDirectory() as directory:
@@ -330,7 +427,9 @@ class ConfirmedProductionTests(unittest.TestCase):
             arbitrary.write_text(canonical.read_text(encoding="utf-8"), encoding="utf-8")
             document["source"] = "剧集/EP001/任意.md"
             job.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "canonical creator Markdown path"):
+            with self.assertRaisesRegex(
+                ValueError, "does not match the canonical creator source"
+            ):
                 production_tool.prepare_job(root, job)
 
         with tempfile.TemporaryDirectory() as directory:

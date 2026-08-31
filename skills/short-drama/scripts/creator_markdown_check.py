@@ -6,8 +6,8 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from pathlib import Path, PurePosixPath
 from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
 from typing import NamedTuple, Optional
 
 
@@ -28,7 +28,18 @@ REQUIRED_DOCUMENTS = (
     "视频提示词.md",
 )
 SECTION_RE = re.compile(r"^## ((?:SHOT|MOTION)-[A-Z0-9-]+)\b", re.MULTILINE)
-IMG_RE = re.compile(r"\b(IMG-[A-Z0-9-]+)《([^》]+)》（控制：([^）]+)）")
+IMG_RE = re.compile(
+    r"\b(IMG-[A-Z0-9-]+)《([^》]+)》"
+    r"（对应：([^；「」\n]+)「([^」\n]+)」；控制：([^）\n]+)）"
+)
+VISUAL_BASIS_RE = re.compile(
+    r"《视觉设定\.md》·([^；「」\n]+)「([^」\n]+)」（控制：([^）\n]+)）"
+)
+VISIBLE_ASSET_RE = re.compile(
+    r"([^；「」\n]+)「([^」\n]+)」（出现：([^）\n]+)）"
+)
+VISUAL_SECTION_RE = re.compile(r"^## ([^·\n]+?) · ([^\n]+)$", re.MULTILINE)
+EXECUTABLE_VISUAL_KINDS = {"人物", "地点", "道具"}
 REF_RE = re.compile(
     r"(REF-[A-Z0-9-]+)（顺序：([1-9]\d*)）· "
     r"([^；\n]+?\.(?:png|jpe?g|webp))《([^》\n]+)》"
@@ -60,6 +71,27 @@ NEGATION_RE = re.compile(
     r")$",
     re.IGNORECASE,
 )
+CONTEXT_DEPENDENT_ANCHOR_RE = re.compile(
+    r"(?:same as (?:the )?previous|as before|same (?:character|person|place|prop)\b|"
+    r"preserve (?:the )?(?:existing|previous) (?:look|appearance)|"
+    r"与上一镜相同|沿用上一镜|同前|保持已有外观)",
+    re.IGNORECASE,
+)
+
+
+AssetKey = tuple[str, str]
+
+
+class VisibleAsset(NamedTuple):
+    """One reusable visual-setting item and when it can enter the shot."""
+
+    kind: str
+    label: str
+    appearances: tuple[str, ...]
+
+    @property
+    def key(self) -> AssetKey:
+        return (self.kind, self.label)
 
 
 def _sections(document: str, kind: str) -> dict[str, str]:
@@ -88,6 +120,128 @@ def _fields(section: str, *, owner: str, errors: list[str]) -> dict[str, str]:
     return fields
 
 
+def _asset_name(key: AssetKey) -> str:
+    return f"{key[0]}「{key[1]}」"
+
+
+def _visual_catalog(document: str, errors: list[str]) -> dict[AssetKey, str]:
+    """Read creator-visible asset headings and their execution surfaces.
+
+    The surface is intentionally small and prompt-language-native. It is the
+    deterministic bridge used when an execution receives no real reference
+    image; richer creator-facing prose remains free-form.
+    """
+    matches = list(VISUAL_SECTION_RE.finditer(document))
+    catalog: dict[AssetKey, str] = {}
+    surfaces: dict[str, AssetKey] = {}
+    for index, match in enumerate(matches):
+        key = (match.group(1).strip(), match.group(2).strip())
+        body = document[
+            match.start() : matches[index + 1].start()
+            if index + 1 < len(matches)
+            else None
+        ]
+        # A creator may document an OS-only speaker or another non-visual note
+        # with the same readable ``类型 · 名称`` heading shape.  It is not an
+        # executable picture asset unless it uses one of the three canonical
+        # kinds accepted by 可见资产.  Keep generic headings as section
+        # boundaries, but do not demand an execution anchor from them.
+        if key[0] not in EXECUTABLE_VISUAL_KINDS:
+            continue
+        fields = _fields(body, owner=_asset_name(key), errors=errors)
+        surface = _plain(fields.get("执行锚点", ""))
+        if key in catalog:
+            errors.append(f"视觉设定.md: 视觉资产标题重复: {_asset_name(key)}")
+            continue
+        if not surface or surface == "无":
+            errors.append(f"{_asset_name(key)}: 缺少执行锚点")
+            continue
+        if CONTEXT_DEPENDENT_ANCHOR_RE.search(surface):
+            errors.append(f"{_asset_name(key)}: 执行锚点依赖未提供的上下文")
+        normalized = _normalized(surface)
+        if normalized in surfaces:
+            errors.append(
+                f"{_asset_name(key)}: 执行锚点与 {_asset_name(surfaces[normalized])} 重复"
+            )
+        else:
+            surfaces[normalized] = key
+        catalog[key] = surface
+    return catalog
+
+
+def _visible_assets(
+    value: str, *, owner: str, catalog: dict[AssetKey, str], errors: list[str]
+) -> list[VisibleAsset]:
+    if not value:
+        errors.append(f"{owner}: 缺少可见资产字段")
+        return []
+    if _is_none(value):
+        return []
+    matches = list(VISIBLE_ASSET_RE.finditer(value))
+    remainder = VISIBLE_ASSET_RE.sub("", value).strip("；。 ")
+    if not matches or remainder:
+        errors.append(f"{owner}: 可见资产必须使用完整类型、名称与出现范围")
+        return []
+    assets: list[VisibleAsset] = []
+    seen: set[AssetKey] = set()
+    allowed = {"全程", "起点", "过程", "终点"}
+    for match in matches:
+        kind, label, raw_appearances = (item.strip() for item in match.groups())
+        appearances = tuple(
+            _unique(
+                item.strip()
+                for item in re.split(r"[、,，]", raw_appearances)
+                if item.strip()
+            )
+        )
+        key = (kind, label)
+        if key in seen:
+            errors.append(f"{owner}: 可见资产重复: {_asset_name(key)}")
+            continue
+        seen.add(key)
+        if key not in catalog:
+            errors.append(f"{owner}: 可见资产不在视觉设定.md: {_asset_name(key)}")
+        if not appearances or any(item not in allowed for item in appearances):
+            errors.append(f"{owner}: {_asset_name(key)} 的出现范围无效")
+        elif "全程" in appearances and len(appearances) != 1:
+            errors.append(f"{owner}: {_asset_name(key)} 不能把全程与局部范围混写")
+        assets.append(VisibleAsset(kind, label, appearances))
+    return assets
+
+
+def _visual_basis_assets(value: str, *, owner: str, errors: list[str]) -> set[AssetKey]:
+    if not value:
+        errors.append(f"{owner}: 缺少视觉依据字段")
+        return set()
+    if _is_none(value):
+        return set()
+    # The document name may naturally scope a semicolon-separated list:
+    # ``《视觉设定.md》·人物「…」（控制：…）；地点「…」（控制：…）``.
+    # Expand only subsequent complete-looking items, keeping the executable
+    # grammar strict without forcing the creator to repeat the filename.
+    normalized = re.sub(
+        r"；\s*(?!《视觉设定\.md》·)"
+        r"(?=[^；「」\n]+「[^」\n]+」（控制：[^）\n]+）)",
+        "；《视觉设定.md》·",
+        value,
+    )
+    matches = list(VISUAL_BASIS_RE.finditer(normalized))
+    remainder = VISUAL_BASIS_RE.sub("", normalized).strip("；。 ")
+    if not matches or remainder:
+        errors.append(f"{owner}: 视觉依据语法不完整")
+        return set()
+    result: set[AssetKey] = set()
+    for match in matches:
+        kind, label, control = (item.strip() for item in match.groups())
+        key = (kind, label)
+        if not control:
+            errors.append(f"{owner}: {_asset_name(key)} 的视觉依据缺少控制范围")
+        if key in result:
+            errors.append(f"{owner}: 视觉依据重复: {_asset_name(key)}")
+        result.add(key)
+    return result
+
+
 def _plain(value: str) -> str:
     return value.strip().rstrip("。")
 
@@ -104,7 +258,11 @@ def _is_none(value: str) -> bool:
 
 def _is_no_external_reference(value: str) -> bool:
     return not _contains_ref_token(value) and bool(
-        re.fullmatch(r"无(?:外部参考)?(?:；[^\n]*)?。?", value.strip())
+        re.fullmatch(
+            r"无(?:(?:真实|外部)(?:输入)?参考(?:图)?)?"
+            r"(?:（[^）\n]+）)?(?:；[^\n]*)?。?",
+            value.strip(),
+        )
     )
 
 
@@ -360,6 +518,7 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
     storyboard = (episode / "分镜.md").read_text(encoding="utf-8")
     video = (episode / "视频提示词.md").read_text(encoding="utf-8")
     visual = (episode / "视觉设定.md").read_text(encoding="utf-8")
+    visual_catalog = _visual_catalog(visual, errors)
     locks = _continuity_locks(visual, errors)
     image_pairs = re.findall(r"^## (IMG-[A-Z0-9-]+) · (.+)$", images, re.MULTILINE)
     image_headings = dict(image_pairs)
@@ -447,6 +606,30 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
 
     for shot_id, shot_body in shots.items():
         fields = _fields(shot_body, owner=shot_id, errors=errors)
+        visible_error_count = len(errors)
+        visible_assets = _visible_assets(
+            fields.get("可见资产", ""),
+            owner=shot_id,
+            catalog=visual_catalog,
+            errors=errors,
+        )
+        visible_contract_valid = len(errors) == visible_error_count
+        visible_keys = {asset.key for asset in visible_assets}
+
+        # Exact creator-visible names in a boundary are deterministic evidence.
+        # This deliberately does not guess aliases or pronouns; those stay in the
+        # semantic review. It catches the common failure where a named person is
+        # plainly in the start/end prose but absent from the dependency list.
+        boundary_text = "\n".join(
+            fields.get(name, "") for name in ("景别/机位", "起点", "终点")
+        )
+        if visible_contract_valid:
+            for key in visual_catalog:
+                if key[1] in boundary_text and key not in visible_keys:
+                    errors.append(
+                        f"{shot_id}: 边界点名了 {_asset_name(key)}，但可见资产没有列出"
+                    )
+
         image_value = fields.get("图片提示词项", "")
         if not image_value:
             errors.append(f"{shot_id}: 缺少图片提示词项字段")
@@ -457,16 +640,62 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
             or image_remainder
         ):
             errors.append(f"{shot_id}: 图片提示词项语法不完整")
-        for image_id, label, _ in image_refs:
+        image_assets: set[AssetKey] = set()
+        for image_id, label, kind, asset_label, control in image_refs:
+            key = (kind.strip(), asset_label.strip())
+            image_assets.add(key)
             if image_id not in image_headings:
                 errors.append(f"{shot_id}: IMG 标题不存在: {image_id}")
             elif label != image_headings[image_id]:
                 errors.append(f"{shot_id}: IMG 中文名称与标题不一致: {image_id}")
+            if key not in visual_catalog:
+                errors.append(
+                    f"{shot_id}: {image_id} 对应项不在视觉设定.md: {_asset_name(key)}"
+                )
+            elif image_id in image_prompts and image_prompts[image_id] is not None:
+                if not _carries_surface(
+                    image_prompts[image_id] or "", visual_catalog[key]
+                ):
+                    errors.append(
+                        f"{shot_id}: {image_id} 可复制提示词缺少 {_asset_name(key)} 的执行锚点"
+                    )
+            if not control.strip():
+                errors.append(f"{shot_id}: {image_id} 缺少控制范围")
+
+        basis_assets = _visual_basis_assets(
+            fields.get("视觉依据", ""), owner=shot_id, errors=errors
+        )
+        for key in basis_assets:
+            if key not in visual_catalog:
+                errors.append(
+                    f"{shot_id}: 视觉依据不在视觉设定.md: {_asset_name(key)}"
+                )
+        if visible_contract_valid:
+            bound_assets = image_assets | basis_assets
+            for key in sorted(visible_keys - bound_assets):
+                errors.append(f"{shot_id}: 可见资产缺少视觉来源: {_asset_name(key)}")
+            for key in sorted(bound_assets - visible_keys):
+                errors.append(f"{shot_id}: 视觉来源绑定了未列出的资产: {_asset_name(key)}")
 
         shot_input = fields.get("输入参考图", "")
         if not shot_input:
             errors.append(f"{shot_id}: 缺少输入参考图字段")
         _references(shot_input, shot_id, project_root, errors)
+
+        shot_anchor = _plain(fields.get("静态视觉锚点", ""))
+        if not shot_anchor or shot_anchor == "无":
+            errors.append(f"{shot_id}: 缺少静态视觉锚点")
+        elif CONTEXT_DEPENDENT_ANCHOR_RE.search(shot_anchor):
+            errors.append(f"{shot_id}: 静态视觉锚点依赖未提供的上下文")
+        keyframe_prompt = _copyable_prompt(
+            shot_body, heading=r"冻结关键帧提示词"
+        )
+        if keyframe_prompt is None:
+            errors.append(f"{shot_id}: 缺少唯一且非空的冻结关键帧提示词")
+        elif shot_anchor and shot_anchor != "无" and not _carries_surface(
+            keyframe_prompt, shot_anchor
+        ):
+            errors.append(f"{shot_id}: 冻结关键帧提示词没有包含静态视觉锚点")
 
         motion = motion_by_shot.get(shot_id)
         if not motion:
@@ -478,21 +707,50 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         if _plain(motion_input) != _plain(shot_input):
             errors.append(f"{motion_id}: 输入参考图与 {shot_id} 不一致")
 
+        motion_anchor = _plain(motion_fields.get("静态视觉锚点", ""))
+        if motion_anchor != shot_anchor:
+            errors.append(f"{motion_id}: 静态视觉锚点与 {shot_id} 不一致")
+        if CONTEXT_DEPENDENT_ANCHOR_RE.search(motion_anchor):
+            errors.append(f"{motion_id}: 静态视觉锚点依赖未提供的上下文")
+        if (
+            copyable_prompt is not None
+            and motion_anchor
+            and motion_anchor != "无"
+            and not _carries_surface(copyable_prompt, motion_anchor)
+        ):
+            errors.append(f"{motion_id}: 可复制提示词没有包含静态视觉锚点")
+
         has_real_image = not _is_none(shot_input)
         expected_mode = "图生视频" if has_real_image else "文生视频"
         if _plain(motion_fields.get("生成方式", "")) != expected_mode:
             errors.append(f"{motion_id}: 生成方式应为{expected_mode}")
-        if not has_real_image:
-            anchor = _plain(motion_fields.get("静态视觉锚点", ""))
-            if not anchor or anchor == "无":
-                errors.append(f"{motion_id}: 文生视频缺少静态视觉锚点")
-            if (
-                copyable_prompt is not None
-                and anchor
-                and anchor != "无"
-                and anchor not in copyable_prompt
+        if not has_real_image and (not motion_anchor or motion_anchor == "无"):
+            errors.append(f"{motion_id}: 文生视频缺少静态视觉锚点")
+        # A real reference is additive, not a shot-wide exemption: it may control
+        # only composition or one of several visible assets. Keep every minimal
+        # execution anchor in copyable text so an unrelated REF cannot make a
+        # different person, place, or prop disappear from the actual request.
+        for asset in visible_assets:
+            surface = visual_catalog.get(asset.key)
+            if not surface:
+                continue
+            if copyable_prompt is not None and not _carries_surface(
+                copyable_prompt, surface
             ):
-                errors.append(f"{motion_id}: 可复制提示词没有包含静态视觉锚点")
+                errors.append(
+                    f"{motion_id}: 可复制提示词缺少 {_asset_name(asset.key)} 的执行锚点"
+                )
+            if "全程" in asset.appearances or "起点" in asset.appearances:
+                if keyframe_prompt is not None and not _carries_surface(
+                    keyframe_prompt, surface
+                ):
+                    errors.append(
+                        f"{shot_id}: 冻结关键帧缺少 {_asset_name(asset.key)} 的执行锚点"
+                    )
+                if shot_anchor and not _carries_surface(shot_anchor, surface):
+                    errors.append(
+                        f"{shot_id}: 静态视觉锚点缺少 {_asset_name(asset.key)} 的执行锚点"
+                    )
 
     _check_continuity_locks(
         locks,
