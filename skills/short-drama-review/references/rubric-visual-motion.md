@@ -34,8 +34,6 @@
 - Are Location/View, axis, screen direction, eyelines, entrances, positions,
   hands, and props coherent?
 - Are exact asset variants bound?
-- Does the shot's visible-asset set include every reusable identity, place, and prop that appears at the declared scale and time—including small/background characters the audience must recognize—and exclude offscreen voices or unidentifiable body fragments?
-- Do image-prompt mappings plus textual visual-basis entries cover that set completely, rather than merely forming a valid subset?
 - Does the shot expose every fact it must carry while protecting
   facts the source withholds until a later action or cut?
 - Do crop, occlusion, focus, back view, and offscreen space serve that information
@@ -49,7 +47,6 @@
   expression, and light legible?
 - Does it avoid ordered actions, performance arcs, camera moves, or transforming
   environments?
-- Does the storyboard-owned static visual anchor appear verbatim, and without real input images does it carry every start-visible asset's execution anchor at a detail level the framing can actually show?
 
 ## Motion
 
@@ -66,7 +63,6 @@
 - Is camera behavior coherent and motivated?
 - Are environment motion, dialogue, SFX, and audio included only when relevant?
 - Does the described end match the storyboard's written end state without rewriting the next shot?
-- Does motion copy the storyboard static anchor verbatim and, for text-to-video, introduce every process/end-only asset's execution anchor before it enters the frame?
 - When a reference frame carries appearance/composition, does motion prose avoid
   dumping the full visual 设定集?
 - Does every claim about text-bearing reference pixels cite a creator/reference-owner
@@ -126,8 +122,6 @@ ellipsis, dream, or deliberate disorientation.
 - beautiful shot with no dramatic purpose;
 - dialogue covered but consequential reaction absent;
 - anonymous asset or wrong variant;
-- visible named character/place/prop omitted from the dependency set, or a valid IMG subset mistaken for complete coverage;
-- project name, “same character”, “same as previous”, or “keep the existing look” used where no real input image supplies appearance;
 - cross-location/time action hidden in one ordinary shot;
 - keyframe contains “first/then/finally”;
 - locked camera also pans or pushes in the same interval;

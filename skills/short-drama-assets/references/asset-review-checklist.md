@@ -18,7 +18,6 @@
 - [ ] ID 唯一；所有已接受 binding 精确解析到 Character+Look、Location+View 或
   Prop+State。
 - [ ] 未决项没有伪造成已确认身份，不能流入图片提示词或分镜。
-- [ ] 每个可下游使用的人物、地点、道具有非空且唯一的执行锚点；执行锚点使用项目提示词语言，不依赖项目专名、上一镜或未提供图片。
 - [ ] 每条变化有前态、后态、原因/来源、生效范围和受影响的可见 ID。
 - [ ] linked outgoing/incoming 状态一致，或有明确待处理 reconciliation。
 - [ ] 可读文字政策完整；`exact_readable` 不与 `no_readable_text` 冲突。

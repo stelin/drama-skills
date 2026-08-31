@@ -147,7 +147,6 @@ flowchart LR
     assets --> img
     assets --> sb --> vid
     img --> prod
-    sb -.frozen keyframe image.-> prod
     vid --> prod
     prod --> rev --> pkg
 ```

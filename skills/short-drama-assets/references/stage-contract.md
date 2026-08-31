@@ -24,7 +24,6 @@
 | AST-10 | structural_invariant | One accepted pronunciation of a proper noun uses one spelling throughout `视觉设定.md`. |
 | AST-11 | reviewed_invariant | Characters designed together are not bound to confusable references; each names the audible trait telling it apart from its nearest neighbour, and names that character. |
 | AST-12 | craft_default | Selection criteria are few, audible and counter-exampled; they judge a candidate reference or a clone result, they do not stand in for one. |
-| AST-13 | structural_invariant | Every visual identity item owns one non-empty prompt-language execution anchor that can identify its visible identity, geography, or form without project context. Within an episode those anchors are distinct; a proper name, pose, camera instruction, “same as previous”, or “keep the existing look” cannot replace the visual surface. |
 
 ### `CON`
 

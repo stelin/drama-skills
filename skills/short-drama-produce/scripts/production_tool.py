@@ -114,13 +114,7 @@ MEDIA_TYPES = {
 }
 CREATOR_SOURCE_NAMES = {
     "图片提示词.md": "image",
-    "分镜.md": "image",
     "视频提示词.md": "video",
-}
-CREATOR_SOURCE_PREFIXES = {
-    "图片提示词.md": "IMG-",
-    "分镜.md": "SHOT-",
-    "视频提示词.md": "MOTION-",
 }
 
 REF_SLOT_RE = re.compile(r"REF-[A-Z0-9][A-Z0-9-]{0,79}")
@@ -681,19 +675,6 @@ def _canonical_creator_source_modality(source: str | None) -> str | None:
     return CREATOR_SOURCE_NAMES.get(path.name)
 
 
-def _canonical_creator_source_prefix(source: str | None) -> str | None:
-    if source is None:
-        return None
-    path = PurePosixPath(source)
-    if (
-        len(path.parts) != 3
-        or path.parts[0] not in {"剧集", "episodes"}
-        or not path.parts[1]
-    ):
-        return None
-    return CREATOR_SOURCE_PREFIXES.get(path.name)
-
-
 def _normalize_reference_bindings(value: object) -> list[dict[str, Any]]:
     if value is None:
         return []
@@ -778,17 +759,10 @@ def _markdown_section(document: str, source_entry: str) -> str:
     return document[match.start() : end]
 
 
-def _copyable_prompt(section: str, *, source_entry: str) -> str:
-    heading = (
-        r"冻结关键帧提示词"
-        if source_entry.startswith("SHOT-")
-        else r"可复制(?:通用)?提示词"
-    )
+def _copyable_prompt(section: str) -> str:
     markers = list(
         re.finditer(
-            rf"^###\s+{heading}\s*$",
-            section,
-            re.MULTILINE,
+            r"^###\s+可复制(?:通用)?提示词\s*$", section, re.MULTILINE
         )
     )
     if not markers:
@@ -837,11 +811,7 @@ def _markdown_reference_bindings(
     if (
         field_name == "参考"
         and not _contains_ref_token(value)
-        and re.fullmatch(
-            r"无(?:(?:真实|外部)(?:输入)?参考(?:图)?)?"
-            r"(?:（[^）\n]+）)?(?:；[^\n]*)?。?",
-            value,
-        )
+        and re.fullmatch(r"无(?:外部参考)?(?:；[^\n]*)?。?", value)
     ):
         return []
     matches = list(REFERENCE_LINE_RE.finditer(value))
@@ -881,7 +851,7 @@ def _verify_markdown_source(
         raise ValueError("source_entry requires a Markdown source")
     document = source_path.read_text(encoding="utf-8")
     section = _markdown_section(document, source_entry)
-    if _copyable_prompt(section, source_entry=source_entry) != prompt.strip():
+    if _copyable_prompt(section) != prompt.strip():
         raise ValueError("job prompt does not match the selected source entry")
     field_name = "参考" if source_entry.startswith("IMG-") else "输入参考图"
     declared = _markdown_reference_bindings(section, field_name=field_name)
@@ -936,12 +906,14 @@ def _normalize_job(root: Path, raw: object) -> dict[str, Any]:
         and source_entry is None
     ):
         raise ValueError("creator Markdown source does not match the job modality")
-    expected_entry_prefix = _canonical_creator_source_prefix(source)
+    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+        str(modality)
+    )
     if source_entry is not None and (
         expected_entry_prefix is None
         or not source_entry.startswith(expected_entry_prefix)
     ):
-        raise ValueError("source_entry does not match the canonical creator source")
+        raise ValueError("source_entry does not match the job modality")
     if source_entry is not None and creator_source_modality != modality:
         raise ValueError("source_entry requires the canonical creator Markdown path")
     references_supplied = "references" in raw
@@ -1070,14 +1042,14 @@ def _validate_stored_job(
         or source is None
     ):
         raise ValueError("stored job source entry is invalid")
-    expected_entry_prefix = _canonical_creator_source_prefix(
-        str(source) if source is not None else None
+    expected_entry_prefix = {"image": "IMG-", "video": "MOTION-"}.get(
+        str(modality)
     )
     if source_entry is not None and (
         expected_entry_prefix is None
         or not source_entry.startswith(expected_entry_prefix)
     ):
-        raise ValueError("stored job source entry does not match its creator source")
+        raise ValueError("stored job source entry has the wrong modality")
     creator_source_modality = _canonical_creator_source_modality(
         str(source) if source is not None else None
     )
