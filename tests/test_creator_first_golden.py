@@ -420,6 +420,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         self.assertIn("不靠相似文件名猜图", video_skill)
         self.assertIn("不静默降级为文生视频", video_skill)
         self.assertIn("不写最终《视频提示词.md》", video_skill)
+        self.assertIn("该字段只写这两个精确值", video_skill)
 
     def test_validator_blocks_pending_or_implicit_text_fallback(self) -> None:
         for label, replacement in {
