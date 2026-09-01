@@ -24,7 +24,7 @@
 | AST-10 | structural_invariant | One accepted pronunciation of a proper noun uses one spelling throughout `视觉设定.md`. |
 | AST-11 | reviewed_invariant | Characters designed together are not bound to confusable references; each names the audible trait telling it apart from its nearest neighbour, and names that character. |
 | AST-12 | craft_default | Selection criteria are few, audible and counter-exampled; they judge a candidate reference or a clone result, they do not stand in for one. |
-| AST-13 | structural_invariant | When a prompt body will call an entry by name in a language other than the entry heading, that entry declares the exact spelling as `画面代称`; one accepted name uses one spelling, and an entry no prompt body names needs no declaration. |
+| AST-13 | structural_invariant | When the project's prompt language is not the language of the entry headings, every 人物 entry a shot's 视觉依据 references reaches a stated conclusion: `画面代称` carrying the exact spelling prompt bodies use, or `画面代称：无` when no body names it. One accepted name uses one spelling, case included. 地点/道具 declare one only when a body names them. |
 
 ### `CON`
 

@@ -64,13 +64,27 @@ python3 {技能目录}/scripts/project_tool.py init ./my-drama --title "示例�
 未确认项，不让 Brief 中的确定事实留成配置里的 `null`。写入已确认的生产档案时，状态统一为
 `accepted`；`unset` 只表示尚未决定，不另造中间状态。
 `init` 只建立配置和空目录；第一次创作时再把文档写入 `剧集/<EP>/`，不预建空文件。
-项目已经建好、用户之后才定下目标视频模型时，用 `set-authority` 把选择写进档案，并同时展示它对
-时长区间、参考方式和正文语言的影响：
+项目已经建好、用户之后才定下目标视频模型时，把选择写进档案，并同时展示它对时长区间、参考方式和
+正文语言的影响。档案只接受已发布并已接受的创作者决策，所以是三步，不是一步。先写一行决策记录
+（`accepted_value` 就是要落进 `choices` 的对象本身，不要再包一层 `choices`）：
+
+```jsonl
+{"decision_id":"CD-H3","status":"accepted","target_locators":[{"src":"short-drama","field":"/creator_authority/production_profile/choices"}],"accepted_value":{"target_video_model":"minimax-h3","video_prompt_dialect":"minimax-h3","video_prompt_language":"en","native_duration_seconds":{"min":4,"max":15},"supported_generation_modes":["text","first_frame","first_last_frame","reference"],"audio_generation":"same_pass"}}
+```
+
+再发布、接受、写入：
 
 ```bash
+python3 {技能目录}/scripts/project_tool.py publish <project> --owner short-drama \
+  --artifact-id AR-PROFILE --output "创作者决策/production-profile.jsonl=输入/profile.jsonl"
+python3 {技能目录}/scripts/project_tool.py accept <project> --artifact-id AR-PROFILE --decision accepted
 python3 {技能目录}/scripts/project_tool.py set-authority <project> \
-  --field /creator_authority/production_profile --decision-ref 创作者决策/<file>.jsonl#<decision-id>
+  --field /creator_authority/production_profile/choices \
+  --decision-ref "创作者决策/production-profile.jsonl#CD-H3"
 ```
+
+各字段取值由命中的模型方言给出：`$short-drama-video-prompts` 的 MiniMax H3 / Seedance 方言文件都写了
+推荐档案。写完用 `status` 复核 `video_model_profile` 是否已经出现。
 
 项目定位与安全写入见 [运行预检](references/runtime-preflight.md)。用户明确要求 Dashboard 时运行：
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path, PurePosixPath
@@ -54,18 +55,35 @@ REF_PURPOSES = (
 )
 EXPLICIT_TEXT_TO_VIDEO = "无（创作者已明确选择文生视频）"
 PENDING_REFERENCE_SUFFIX_RE = re.compile(r"；待补参考图：[^；。\n]+。?$")
+VISUAL_CATEGORIES = ("人物", "造型", "地点", "道具")
 VISUAL_SETTING_LINE_RE = re.compile(
-    r"^##[ \t　]*(?:人物|造型|地点|道具)[^\n]*$", re.MULTILINE
+    r"^#{2,4}[ \t　]*(?:" + "|".join(VISUAL_CATEGORIES) + r")[^\n]*$", re.MULTILINE
 )
 VISUAL_SETTING_HEADING_RE = re.compile(
-    r"^## (人物|造型|地点|道具) · (.+?)[ \t　]*$", re.MULTILINE
+    r"^## (" + "|".join(VISUAL_CATEGORIES) + r") · (.+?)[ \t　]*$", re.MULTILINE
 )
+# Any other `## <word> · <name>` heading, so a 视觉依据 entry that fails to
+# resolve can say "the entry is there, the section word is not one of the four"
+# instead of blaming the storyboard for a `视觉设定.md` problem.
+OTHER_SETTING_HEADING_RE = re.compile(r"^## ([^\n·]+?) · (.+?)[ \t　]*$", re.MULTILINE)
+# 画面代称 is the one field the coverage check depends on, so — like a
+# continuity lock — anything that looks like it has to parse rather than
+# silently drop out.
+SCREEN_NAME_LINE_RE = re.compile(r"^[^\n]*画面代称[^\n]*$", re.MULTILINE)
 SCREEN_NAME_RE = re.compile(
     r"^[ \t　]*[-*+][ \t　]*画面代称[：:](.+)$", re.MULTILINE
 )
 VISUAL_BASIS_PREFIX = "《视觉设定.md》·"
 VISUAL_BASIS_ENTRY_RE = re.compile(
-    r"(人物|造型|地点|道具)「([^」\n]+)」（控制：([^）\n]+)）"
+    r"(" + "|".join(VISUAL_CATEGORIES) + r")「([^」\n]+)」（控制：([^）\n]+)）"
+)
+# A subject a keyframe names but does not show — an owner's abandoned bag, a
+# name on a screen, a homonym of an entry name. SHT-22 excludes these from
+# coverage, so the field needs a way to say so instead of forcing the creator
+# to declare an absent subject as present.
+OFFSCREEN_PREFIX = "；画外："
+OFFSCREEN_ENTRY_RE = re.compile(
+    r"(" + "|".join(VISUAL_CATEGORIES) + r")「([^」\n]+)」"
 )
 # A declared lock must never become a no-op. Anything that *looks* like a lock
 # line -- any list marker, any leading whitespace -- is captured here and then
@@ -88,7 +106,8 @@ NEGATION_RE = re.compile(
     r"(?:"
     r"(?:^|[\s,;:(\[/—-])(?:no|not|non|never|without|avoid|excludes?|excluding|"
     r"free\s+of|--?no)(?:\s+(?:a|an|the|any|some))?[\s-]*"
-    r"|(?:不要|不得|不能|不出现|没有|避免|禁止|排除)[\s]*"
+    r"|(?:不要|不得|不能|不应|不含|不出现|没有|未|避免|禁止|排除|去掉|移除)"
+    r"(?:出现|包含|存在|带|有)?[\s]*"
     r")$",
     re.IGNORECASE,
 )
@@ -221,11 +240,12 @@ def _references(value: str, owner: str, project_root: Path, errors: list[str]) -
         range(1, len(orders) + 1)
     ):
         errors.append(f"{owner}: REF 顺序必须唯一且从 1 连续编号")
-    if len(paths) != len(set(paths)):
-        errors.append(f"{owner}: REF 路径重复")
     purposes = [
         match.group(5).strip() if match.group(5) else "" for match in matches
     ]
+    path_purposes = list(zip(paths, purposes))
+    if len(path_purposes) != len(set(path_purposes)):
+        errors.append(f"{owner}: REF 路径与用途完全重复")
     for slot, purpose in zip(slots, purposes):
         if not purpose:
             errors.append(
@@ -239,7 +259,7 @@ def _references(value: str, owner: str, project_root: Path, errors: list[str]) -
             )
     for role in ("起始帧", "结束帧"):
         if purposes.count(role) > 1:
-            errors.append(f"{owner}: 一镜只能有一张{role}参考图")
+            errors.append(f"{owner}: 同一条目只能有一张{role}参考图")
     if "结束帧" in purposes and "起始帧" not in purposes:
         errors.append(f"{owner}: 绑定结束帧参考图时必须同时绑定起始帧")
     for match, (_, _, raw_path) in zip(matches, refs):
@@ -351,6 +371,12 @@ def _visual_entries(document: str, errors: list[str]) -> list[VisualEntry]:
                 "视觉设定.md: 条目标题必须写成 `## <人物|造型|地点|道具> · <名称>`: "
                 + _excerpt(line)
             )
+    for line in SCREEN_NAME_LINE_RE.findall(document):
+        if SCREEN_NAME_RE.match(line) is None:
+            errors.append(
+                "视觉设定.md: 画面代称必须写成 `- 画面代称：<正文里的拼写>`: "
+                + _excerpt(line)
+            )
     headings = list(VISUAL_SETTING_HEADING_RE.finditer(document))
     entries: list[VisualEntry] = []
     seen: set[tuple[str, str]] = set()
@@ -368,55 +394,83 @@ def _visual_entries(document: str, errors: list[str]) -> list[VisualEntry]:
             errors.append(f"视觉设定.md: 条目重复: {category}「{name}」")
             continue
         seen.add((category, name))
-        # The entry's own name is always a designator: a Chinese-language prompt
-        # body calls it exactly that. 画面代称 adds the spelling a prompt written
-        # in another language uses, so the coverage check works either way.
-        designators = [name]
-        for raw in SCREEN_NAME_RE.findall(document[heading.end() : end]):
-            value = _plain(raw)
-            if _is_none(value):
-                continue
-            for item in re.split(r"[、,，]", value):
-                item = item.strip()
-                if item and item not in designators:
-                    designators.append(item)
+        declared = SCREEN_NAME_RE.findall(document[heading.end() : end])
+        if not declared:
+            # No declaration: the entry's own name is the designator, which is
+            # what a prompt body written in the project's own language calls it.
+            designators = [name]
+        elif all(_is_none(_plain(raw)) for raw in declared):
+            # `画面代称：无` is the deliberate opt-out for a name too common to
+            # match reliably in prose (道具「手机」 against 手机店). It removes the
+            # derived name too, otherwise the opt-out would do nothing.
+            designators = []
+        else:
+            designators = []
+            for raw in declared:
+                value = _plain(raw)
+                if _is_none(value):
+                    continue
+                for item in re.split(r"[、,，]", value):
+                    item = item.strip()
+                    if item and item not in designators:
+                        designators.append(item)
+        for designator in designators:
+            if len(designator.strip()) < 2:
+                errors.append(
+                    f"视觉设定.md: {category}「{name}」的画面代称「{designator}」"
+                    "过短，无法在正文中可靠识别；请写成至少两个字符，或写「画面代称：无」"
+                )
         entries.append(VisualEntry(category, name, designators))
     return entries
 
 
-def _named_entries(prompt: str, entries: list[VisualEntry]) -> set[tuple[str, str]]:
+def _named_entries(
+    prompt: str, entries: list[VisualEntry], *, fold_case: bool = False
+) -> set[tuple[str, str]]:
     """Which declared entries does this frozen keyframe actually call by name?
 
     Longer designators win: a keyframe that shows 「江晨手机」 names the prop, and
     the 人物「江晨」 substring inside it is not a second, unrelated claim.
     """
     haystack = re.sub(r"\s+", " ", prompt).strip()
-    candidates = sorted(
-        (
-            (re.sub(r"\s+", " ", designator).strip(), entry)
-            for entry in entries
-            for designator in entry.designators
-        ),
-        key=lambda item: len(item[0]),
-        reverse=True,
-    )
+    if fold_case:
+        haystack = haystack.casefold()
+    owners: dict[str, list[VisualEntry]] = {}
+    for entry in entries:
+        for designator in entry.designators:
+            needle = re.sub(r"\s+", " ", designator).strip()
+            if fold_case:
+                needle = needle.casefold()
+            # A one-character designator matches far too much prose to be
+            # evidence; _visual_entries already reports it.
+            if len(needle) < 2:
+                continue
+            owners.setdefault(needle, []).append(entry)
     named: set[tuple[str, str]] = set()
+    # Spans of every occurrence of a longer designator, whether or not it was
+    # credited. 「戒指盒」 occupies its characters even when the sentence is
+    # 「没有戒指」, so 道具「戒指」 must not be read out of it.
     taken: list[tuple[int, int]] = []
-    for needle, entry in candidates:
-        # A one-character designator matches far too much prose to be evidence.
-        if len(needle) < 2:
-            continue
+    for needle in sorted(owners, key=len, reverse=True):
+        occurrences: list[tuple[int, int]] = []
         start = haystack.find(needle)
         while start != -1:
             end = start + len(needle)
+            occurrences.append((start, end))
+            start = haystack.find(needle, start + 1)
+        for start, end in occurrences:
             before = haystack[start - 1] if start else ""
             after = haystack[end] if end < len(haystack) else ""
             glued = (
                 (_wordish(needle[:1]) and _wordish(before))
                 or (_wordish(needle[-1:]) and _wordish(after))
             )
+            # Strictly longer, so two entries sharing one designator are both
+            # credited instead of the first in document order winning.
             inside_longer = any(
-                taken_start <= start and end <= taken_end
+                taken_start <= start
+                and end <= taken_end
+                and taken_end - taken_start > end - start
                 for taken_start, taken_end in taken
             )
             if (
@@ -424,35 +478,106 @@ def _named_entries(prompt: str, entries: list[VisualEntry]) -> set[tuple[str, st
                 and not inside_longer
                 and NEGATION_RE.search(haystack[:start]) is None
             ):
-                named.add(entry.key)
-                taken.append((start, end))
-            start = haystack.find(needle, start + 1)
+                named.update(entry.key for entry in owners[needle])
+        taken.extend(occurrences)
     return named
 
 
+class VisualBasis(NamedTuple):
+    """One shot's parsed 视觉依据: what it declares, and what it excludes."""
+
+    parsed: bool
+    declared: set[tuple[str, str]]
+    offscreen: set[tuple[str, str]]
+
+    @property
+    def accounted(self) -> set[tuple[str, str]]:
+        return self.declared | self.offscreen
+
+
+def _resolve_entry(
+    key: tuple[str, str],
+    known: set[tuple[str, str]],
+    other_headings: dict[str, str],
+    owner: str,
+    errors: list[str],
+) -> None:
+    if key in known:
+        return
+    category, name = key
+    section = other_headings.get(name)
+    if section is not None:
+        errors.append(
+            f"{owner}: 《视觉设定.md》里有「{name}」，但它的分节词是「{section}」；"
+            "条目标题必须写成 `## <人物|造型|地点|道具> · <名称>`"
+        )
+    else:
+        errors.append(
+            f"{owner}: 视觉依据指向不存在的《视觉设定.md》条目: {category}「{name}」"
+        )
+
+
+def _check_named_coverage(
+    prompt: str,
+    owner: str,
+    where: str,
+    basis: "VisualBasis",
+    entries: list[VisualEntry],
+    errors: list[str],
+) -> None:
+    """Every entry this text calls by name is either in frame or declared 画外."""
+    # Matching is case-sensitive so an ordinary English word never impersonates a
+    # character called May or Will. A body that writes the name in another case
+    # would otherwise fall out of the check silently, so it is reported here.
+    named = _named_entries(prompt, entries)
+    folded = _named_entries(prompt, entries, fold_case=True)
+    for category, name in sorted(folded - named):
+        errors.append(
+            f"{owner}: {where}里的名字与画面代称大小写不一致: {category}「{name}」；"
+            "同一个名字全集只用一个拼写"
+        )
+    for category, name in sorted(named):
+        if (category, name) not in basis.accounted:
+            errors.append(
+                f"{owner}: {where}写到{category}「{name}」，视觉依据没有覆盖；"
+                "本镜确实看不见时在视觉依据末尾加「；画外："
+                f"{category}「{name}」」，正文里这个名字不可靠时在《视觉设定.md》"
+                "写「画面代称：无」"
+            )
+
+
 def _visual_basis(
-    value: str, owner: str, entries: list[VisualEntry], errors: list[str]
-) -> set[tuple[str, str]]:
+    value: str,
+    owner: str,
+    entries: list[VisualEntry],
+    other_headings: dict[str, str],
+    errors: list[str],
+) -> VisualBasis:
     """Parse one shot's 视觉依据 and resolve it against `视觉设定.md`."""
+    empty = VisualBasis(True, set(), set())
     if _is_none(value):
-        return set()
+        return empty
     plain = _plain(value)
-    body = plain[len(VISUAL_BASIS_PREFIX) :] if plain.startswith(
-        VISUAL_BASIS_PREFIX
-    ) else None
-    matches = list(VISUAL_BASIS_ENTRY_RE.finditer(body)) if body is not None else []
+    offscreen_raw = ""
+    if OFFSCREEN_PREFIX in plain:
+        plain, _, offscreen_raw = plain.partition(OFFSCREEN_PREFIX)
+    prefixed = plain.startswith(VISUAL_BASIS_PREFIX)
+    body = plain[len(VISUAL_BASIS_PREFIX) :] if prefixed else ""
+    matches = list(VISUAL_BASIS_ENTRY_RE.finditer(body)) if prefixed else []
     cursor = 0
     separators_are_valid = True
     for index, match in enumerate(matches):
         if body[cursor : match.start()] != ("" if index == 0 else "；"):
             separators_are_valid = False
         cursor = match.end()
-    if body is None or not matches or not separators_are_valid or body[cursor:]:
+    if not prefixed or not matches or not separators_are_valid or body[cursor:]:
         errors.append(
             f"{owner}: 视觉依据必须使用完整语法："
             "《视觉设定.md》·<人物|造型|地点|道具>「<名称>」（控制：<范围>），多项用；连接"
         )
-        return set()
+        # Coverage is not reported on top of a parse failure: every entry would
+        # be listed as uncovered and bury the one error that matters.
+        return VisualBasis(False, set(), set())
     known = {entry.key for entry in entries}
     declared: set[tuple[str, str]] = set()
     for match in matches:
@@ -460,13 +585,27 @@ def _visual_basis(
         if key in declared:
             errors.append(f"{owner}: 视觉依据条目重复: {key[0]}「{key[1]}」")
         declared.add(key)
-        if key not in known:
-            errors.append(
-                f"{owner}: 视觉依据指向不存在的《视觉设定.md》条目: {key[0]}「{key[1]}」"
-            )
+        _resolve_entry(key, known, other_headings, owner, errors)
         if not match.group(3).strip():
             errors.append(f"{owner}: 视觉依据缺少控制范围: {key[0]}「{key[1]}」")
-    return declared
+    offscreen: set[tuple[str, str]] = set()
+    if offscreen_raw:
+        remainder = OFFSCREEN_ENTRY_RE.sub("", offscreen_raw).strip("；、 ")
+        offscreen_matches = list(OFFSCREEN_ENTRY_RE.finditer(offscreen_raw))
+        if not offscreen_matches or remainder:
+            errors.append(
+                f"{owner}: 画外清单必须写成 `；画外：<人物|造型|地点|道具>「<名称>」`，多项用；连接"
+            )
+            return VisualBasis(False, set(), set())
+        for match in offscreen_matches:
+            key = (match.group(1), match.group(2).strip())
+            if key in declared:
+                errors.append(
+                    f"{owner}: {key[0]}「{key[1]}」同时写进视觉依据和画外清单"
+                )
+            offscreen.add(key)
+            _resolve_entry(key, known, other_headings, owner, errors)
+    return VisualBasis(True, declared, offscreen)
 
 
 class ContinuityLock(NamedTuple):
@@ -523,6 +662,63 @@ def _continuity_locks(document: str, errors: list[str]) -> list[ContinuityLock]:
     return locks
 
 
+def _prompt_language(project_root: Path) -> str:
+    """The language a copyable prompt body is written in.
+
+    Mirrors the skills' own routing: the project's declared prompt language,
+    falling back to `en` when there is no `short-drama.json` -- which is what
+    the storyboard skill tells the keyframe author to assume.
+    """
+    configuration = project_root / "short-drama.json"
+    if not configuration.is_file():
+        return "en"
+    try:
+        project = json.loads(configuration.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "en"
+    if not isinstance(project, dict):
+        return "en"
+    authority = project.get("creator_authority")
+    profile = (
+        authority.get("production_profile") if isinstance(authority, dict) else None
+    )
+    if isinstance(profile, dict) and profile.get("status") == "accepted":
+        choices = profile.get("choices")
+        if isinstance(choices, dict):
+            declared = choices.get("video_prompt_language")
+            if isinstance(declared, str) and declared:
+                return declared
+    formats = project.get("format")
+    declared = formats.get("prompt_language") if isinstance(formats, dict) else None
+    return declared if isinstance(declared, str) and declared else "en"
+
+
+def _check_language_designators(
+    project_root: Path,
+    *,
+    entries: list[VisualEntry],
+    referenced: set[tuple[str, str]],
+    errors: list[str],
+) -> None:
+    """A character used by a shot must be nameable in the prompt's language.
+
+    Without this, omitting `画面代称` is a silent opt-out of the coverage check
+    for exactly the projects that need it -- the keyframe body defaults to `en`
+    while `视觉设定.md` is Chinese, which is the shape issue #94 reported.
+    """
+    if _prompt_language(project_root).casefold().startswith("zh"):
+        return
+    for entry in entries:
+        if entry.category != "人物" or entry.key not in referenced:
+            continue
+        if entry.designators == [entry.name]:
+            errors.append(
+                f"视觉设定.md: 人物「{entry.name}」缺少画面代称；"
+                "提示词正文不是中文时，写「画面代称：<正文里的拼写>」，"
+                "正文从不点名时写「画面代称：无」"
+            )
+
+
 def _check_continuity_locks(
     locks: list[ContinuityLock],
     *,
@@ -577,6 +773,12 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
     visual = (episode / "视觉设定.md").read_text(encoding="utf-8")
     locks = _continuity_locks(visual, errors)
     visual_entries = _visual_entries(visual, errors)
+    other_headings = {
+        match.group(2).strip(): match.group(1).strip()
+        for match in OTHER_SETTING_HEADING_RE.finditer(visual)
+        if match.group(1).strip() not in VISUAL_CATEGORIES
+    }
+    referenced_entries: set[tuple[str, str]] = set()
     image_pairs = re.findall(r"^## (IMG-[A-Z0-9-]+) · (.+)$", images, re.MULTILINE)
     image_headings = dict(image_pairs)
     all_image_headings = re.findall(r"^## (IMG-[A-Z0-9-]+)\b", images, re.MULTILINE)
@@ -687,23 +889,21 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         basis_value = fields.get("视觉依据", "")
         if not basis_value:
             errors.append(f"{shot_id}: 缺少视觉依据字段")
-            declared_basis: set[tuple[str, str]] = set()
+            basis = VisualBasis(False, set(), set())
         else:
-            declared_basis = _visual_basis(
-                basis_value, shot_id, visual_entries, errors
+            basis = _visual_basis(
+                basis_value, shot_id, visual_entries, other_headings, errors
             )
+        referenced_entries.update(basis.declared)
         # The keyframe is the only place the frame's contents exist as text, so a
         # shot without one would make the coverage check below vacuous.
         keyframe = _copyable_prompt(shot_body, heading=r"冻结关键帧提示词")
         if keyframe is None:
             errors.append(f"{shot_id}: 缺少唯一且非空的冻结关键帧提示词")
-        else:
-            for category, name in sorted(_named_entries(keyframe, visual_entries)):
-                if (category, name) not in declared_basis:
-                    errors.append(
-                        f"{shot_id}: 冻结关键帧提示词写到{category}「{name}」，"
-                        "视觉依据没有覆盖"
-                    )
+        elif basis.parsed:
+            _check_named_coverage(
+                keyframe, shot_id, "冻结关键帧提示词", basis, visual_entries, errors
+            )
 
         motion = motion_by_shot.get(shot_id)
         if not motion:
@@ -738,7 +938,22 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
                 and anchor not in copyable_prompt
             ):
                 errors.append(f"{motion_id}: 可复制提示词没有包含静态视觉锚点")
+            # In text-to-video the anchor carries the appearance the keyframe
+            # would otherwise have carried, so it is the same claim about the
+            # same frame and answers to the same visual basis. The rest of the
+            # motion body is not checked: it may legitimately name an offscreen
+            # speaker, which SHT-22 excludes.
+            if anchor and anchor != "无" and basis.parsed:
+                _check_named_coverage(
+                    anchor, motion_id, "静态视觉锚点", basis, visual_entries, errors
+                )
 
+    _check_language_designators(
+        project_root,
+        entries=visual_entries,
+        referenced=referenced_entries,
+        errors=errors,
+    )
     _check_continuity_locks(
         locks,
         shots=shots,

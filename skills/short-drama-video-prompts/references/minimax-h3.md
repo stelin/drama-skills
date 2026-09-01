@@ -44,6 +44,9 @@ non_diegetic_music: ...
 | 一张 `用途：起始帧` + 一张 `用途：结束帧` | `first_last_frame` | 三段 |
 | 其他任何组合（起始帧与人物/地点/道具图同时存在，或只有人物/地点/道具图） | `reference`（full-reference） | 六段 |
 
+H3 官方另有只给尾帧、由模型推断开场的 L2VA 模式。本套件不使用它：开场由分镜已接受的起点决定，
+把它交给模型推断会让 `SHOT-...` 的起点失去权威。因此 `结束帧` 只在同时绑定 `起始帧` 时出现。
+
 第四行是最常见、也最容易写错的一种。H3 的首/尾帧输入与参考输入**互斥**，所以「起始帧 + 角色板 +
 场景板」不能拆成 `first_frame` 加 `reference_image`：整组统一走 full-reference，起始帧也以
 `reference_image` 送入，正文按下面的标签编号引用。用哪一种模式在《视频提示词.md》里由 `用途` 组合读出，
@@ -118,9 +121,15 @@ non_diegetic_music: N/A
 
 ## 素材数量上限
 
-一次生成最多 1 张首帧、1 张尾帧、9 张 `reference_image`、3 段 `reference_video`（合计 ≤15 秒）、
-3 段 `reference_audio`（合计 ≤15 秒）。分辨率取 `768P` 或 `2K`（`MiniMax-H3-Max` 另为 `480P`/`768P`）。
+一次生成最多 1 张首帧、1 张尾帧、9 张 `reference_image`、3 段 `reference_video`、3 段 `reference_audio`；
+视频与音频每段 2–15 秒，且各自合计不超过 15 秒。分辨率取 `768P` 或 `2K`（`MiniMax-H3-Max` 另为 `480P`/`768P`）。
 超过上限时在分镜阶段按重要性取舍，并写明放弃了哪些参考，不在正文里假装它们仍然生效。
+
+本镜还没有起始帧图片时，它由 `$short-drama-produce` 从 `分镜.md` 的 `SHOT-...` 冻结关键帧生成；
+拿到真实文件后由分镜 owner 绑成 `用途：起始帧` 的 `REF-...`，本阶段再原样抄入。
+
+`输入参考图` 只登记参考**图片**。连续段需要的上一段实际视频与实际音频不走这个字段，由下面的
+「连续段」小节和生产 job 的绑定承担；不要为了凑成一份清单把视频路径塞进 `REF-...`。
 
 ## 连续段
 
@@ -135,7 +144,7 @@ full-reference：
 
 ## 时长
 
-MiniMax-H3 的整数时长是 4–15 秒。短动作在至少 4 秒的镜头内完成并 hold 已接受终点；超过 15 秒的
+MiniMax-H3 的整数时长是 4–15 秒，`MiniMax-H3-Max` 是 5–15 秒（不支持 4 秒）。短动作在至少 4 秒的镜头内完成并 hold 已接受终点；超过 15 秒的
 镜头在分镜阶段按闭合状态拆开。本阶段不偷改镜头秒数。
 
 依据：MiniMax-H3 官方 base/ref prompt writing guides 与 MiniMax v2 video generation API。

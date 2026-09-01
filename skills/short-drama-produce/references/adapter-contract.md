@@ -33,9 +33,11 @@
   utterance; `music` is a separately accepted timeline-level cue or song and
   must not be smuggled into every shot's video job.
 - `source`: optional current project text/spec that owns the prompt.
-- `source_entry`: for a creator-first job, the exact uppercase `IMG-*` or `MOTION-*`
-  H2 ID inside the canonical `剧集|episodes/<EP>/图片提示词.md|视频提示词.md`
-  `source`. A new image/video job pointing to either canonical filename must
+- `source_entry`: for a creator-first job, the exact uppercase H2 ID inside a
+  canonical `剧集|episodes/<EP>/` creator document, matched to that document:
+  `图片提示词.md` takes `IMG-*` (image), `视频提示词.md` takes `MOTION-*` (video),
+  and `分镜.md` takes `SHOT-*` (image, whose prompt is the shot's
+  `### 冻结关键帧提示词` body rather than `### 可复制提示词`). A new image/video job pointing to either canonical filename must
   provide the matching selector; an arbitrary Markdown file cannot impersonate a
   creator source. `prepare` selects that section and requires `prompt` to exactly
   equal its copyable prompt after Markdown quote markers are removed.
@@ -43,8 +45,13 @@
   exactly `slot_id`, contiguous `order`, project-relative `path`, Chinese `label`,
   non-empty `role`, and non-empty `may_control` / `must_not_control` lists. When
   `source_entry` is present, these fields must exactly match that entry's
-  `参考` (IMG) or `输入参考图` (MOTION) declaration (except `role`, which is
+  `参考` (IMG) or `输入参考图` (SHOT/MOTION) declaration (except `role`, which is
   production metadata). Allowed and prohibited scopes may not overlap.
+  The creator declaration also carries a `用途` — what this picture decides in
+  this shot, from the closed set in the storyboard skill. `role` is its
+  production-side translation and is chosen per provider, so the two are not
+  compared; a binding whose `role` contradicts the declared `用途` is a defect
+  the creator document, not this schema, is the authority on.
 - `references`: zero to sixteen current project files actually sent to production.
   It may be omitted when `reference_bindings` is present, in which case the paths
   are derived in binding order. If both are present, they must match exactly.
