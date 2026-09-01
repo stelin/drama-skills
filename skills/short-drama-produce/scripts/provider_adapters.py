@@ -172,7 +172,12 @@ def _require_job(job: Mapping[str, Any], modality: str) -> tuple[str, dict[str, 
     return prompt, dict(parameters)
 
 
-def _prompt_with_reference_contract(prompt: str, job: Mapping[str, Any]) -> str:
+def _prompt_with_reference_contract(
+    prompt: str,
+    job: Mapping[str, Any],
+    *,
+    prompt_language: str | None = None,
+) -> str:
     bindings = job.get("reference_bindings", [])
     references = job.get("references", [])
     if not bindings:
@@ -183,6 +188,7 @@ def _prompt_with_reference_contract(prompt: str, job: Mapping[str, Any]) -> str:
         or len(bindings) != len(references)
     ):
         raise ValueError("reference bindings must match job references")
+    language = (prompt_language or "en").casefold()
     instructions: list[str] = []
     for index, binding in enumerate(bindings, 1):
         if not isinstance(binding, Mapping) or binding.get("order") != index:
@@ -206,17 +212,45 @@ def _prompt_with_reference_contract(prompt: str, job: Mapping[str, Any]) -> str:
             or not all(isinstance(item, str) and item.strip() for item in must_not_control)
         ):
             raise ValueError("reference binding semantics are invalid")
-        instructions.append(
-            "Reference image {order} ({label}), role {role}. May control: {may}. "
-            "Must not control: {must}.".format(
-                order=index,
-                label=label.strip(),
-                role=role.strip(),
-                may=", ".join(item.strip() for item in may_control),
-                must=", ".join(item.strip() for item in must_not_control),
+        values = {
+            "order": index,
+            "label": label.strip(),
+            "role": role.strip(),
+            "may": ", ".join(item.strip() for item in may_control),
+            "must": ", ".join(item.strip() for item in must_not_control),
+        }
+        if language.startswith("zh"):
+            instructions.append(
+                "参考 {order}（{label}），用途 {role}。允许控制：{may}。"
+                "不得控制：{must}。".format(**values)
             )
-        )
-    return f"{prompt}\n\nReference contract:\n" + "\n".join(instructions)
+        elif language.startswith("en"):
+            instructions.append(
+                "Reference {order} ({label}), role {role}. May control: {may}. "
+                "Must not control: {must}.".format(**values)
+            )
+        else:
+            instructions.append(
+                "[REF {order} | {label} | {role}] [+] {may} [-] {must}".format(
+                    **values
+                )
+            )
+    if language.startswith("zh"):
+        heading = "参考约束："
+    elif language.startswith("en"):
+        heading = "Reference contract:"
+    else:
+        heading = "<REF_CONTRACT>"
+    return f"{prompt}\n\n{heading}\n" + "\n".join(instructions)
+
+
+def _pop_prompt_language(parameters: dict[str, Any]) -> str | None:
+    value = parameters.pop("prompt_language", None)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip() or len(value) > 64:
+        raise ValueError("prompt_language must be a non-empty bounded language tag")
+    return value.strip()
 
 
 def _take(parameters: dict[str, Any], allowed: set[str]) -> dict[str, Any]:
@@ -249,8 +283,9 @@ def compile_seedance_payload(
         raise ValueError("Seedance adapter requires an MP4 target")
     parameters = _take(
         parameters,
-        {"duration", "ratio"},
+        {"duration", "ratio", "prompt_language"},
     )
+    prompt_language = _pop_prompt_language(parameters)
     duration = parameters.get("duration")
     if duration is not None and (
         not isinstance(duration, int)
@@ -275,7 +310,9 @@ def compile_seedance_payload(
             raise ValueError("Seedance ratio needs an explicit model profile")
         if not configured_ratios <= SEEDANCE_RATIOS or ratio.strip() not in configured_ratios:
             raise ValueError("Seedance ratio is outside the configured model profile")
-    text = _prompt_with_reference_contract(prompt, job)
+    text = _prompt_with_reference_contract(
+        prompt, job, prompt_language=prompt_language
+    )
     if ratio is not None:
         text += f" --ratio {ratio.strip()}"
     if duration is not None:
@@ -382,7 +419,10 @@ def compile_minimax_h3_payload(
         raise ValueError("MiniMax reference roles must match job references")
     if Path(job["outputs"][0]).suffix.casefold() != ".mp4":
         raise ValueError("MiniMax video adapter requires an MP4 target")
-    parameters = _take(parameters, {"duration", "ratio", "resolution"})
+    parameters = _take(
+        parameters, {"duration", "ratio", "resolution", "prompt_language"}
+    )
+    prompt_language = _pop_prompt_language(parameters)
 
     duration = parameters.get("duration")
     if not isinstance(duration, int) or isinstance(duration, bool):
@@ -418,7 +458,9 @@ def compile_minimax_h3_payload(
         ):
             raise ValueError("MiniMax video ratio is outside the configured model profile")
 
-    text = _prompt_with_reference_contract(prompt, job)
+    text = _prompt_with_reference_contract(
+        prompt, job, prompt_language=prompt_language
+    )
     if len(text) > MINIMAX_VIDEO_PROMPT_LIMIT:
         raise ValueError("MiniMax video prompt exceeds the provider limit")
     content: list[dict[str, Any]] = [{"type": "text", "text": text}]
@@ -507,9 +549,20 @@ def compile_gpt_image_2_payload(job: Mapping[str, Any]) -> dict[str, Any]:
     prompt, parameters = _require_job(job, "image")
     parameters = _take(
         parameters,
-        {"width", "height", "size", "quality", "background", "moderation"},
+        {
+            "width",
+            "height",
+            "size",
+            "quality",
+            "background",
+            "moderation",
+            "prompt_language",
+        },
     )
-    prompt = _prompt_with_reference_contract(prompt, job)
+    prompt_language = _pop_prompt_language(parameters)
+    prompt = _prompt_with_reference_contract(
+        prompt, job, prompt_language=prompt_language
+    )
     if len(prompt) > 32000:
         raise ValueError("GPT Image prompt exceeds the provider limit")
     width = parameters.pop("width", None)

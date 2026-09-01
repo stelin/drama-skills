@@ -53,7 +53,9 @@ creator-first job 必须从 `图片提示词.md` 或 `视频提示词.md` 的对
 
 ## 命令
 
-只在进入生产边界后把当前提示词和运行参数写成临时 JSON；不要在创作阶段为每条提示词预建 job。
+只在进入生产边界后把当前提示词和运行参数写成临时 JSON；视频与图片 job 的
+`parameters.prompt_language` 跟随当前可复制正文已经解析出的提示词语言，使 adapter 追加的参考约束
+使用同一种语言，而不是重新回退成固定英文。不要在创作阶段为每条提示词预建 job。
 格式和 adapter 契约见
 [adapter-contract.md](references/adapter-contract.md)。命令由
 [production_tool.py](scripts/production_tool.py) 提供，然后运行：

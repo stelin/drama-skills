@@ -34,6 +34,8 @@ refused because there is no reference frame to adapt to.
 The prompt is compiled into one `text` item of the multimodal `content` array and is refused above
 7000 characters. Each declared reference becomes one further `content` item carrying an explicit
 `role`: `first_frame`, `last_frame`, `reference_image`, `reference_video`, or `reference_audio`.
+Set the job's `parameters.prompt_language` to the resolved video-prompt language; the compiler
+consumes it when appending reference semantics and does not send it as a MiniMax request field.
 `first_frame` and `last_frame` may each appear once. Reference URLs must be HTTPS or `mm_file://`;
 local references fail closed, exactly as for Seedance, because the public contract does not prove
 that a local data URL is accepted. A deployment that needs image-to-video must add an external,

@@ -129,7 +129,7 @@ class ProviderCompilerTests(unittest.TestCase):
             reference_urls=["asset://asset-202608160001-example"],
         )
         text = seedance["content"][0]["text"]
-        self.assertIn("Reference image 1 (女主定妆照), role identity", text)
+        self.assertIn("Reference 1 (女主定妆照), role identity", text)
         self.assertIn("May control: 脸型, 发型", text)
         self.assertIn("Must not control: 构图, 动作", text)
 
@@ -139,6 +139,49 @@ class ProviderCompilerTests(unittest.TestCase):
         gpt_image = provider_adapters.compile_gpt_image_2_payload(image)
         self.assertIn("Reference contract:", gpt_image["prompt"])
         self.assertIn("Must not control: 构图, 动作", gpt_image["prompt"])
+
+    def test_minimax_continuation_keeps_both_media_and_uses_prompt_language(self) -> None:
+        video = self.video_job(
+            duration=6,
+            resolution="768P",
+            prompt_language="zh-CN",
+        )
+        video["references"] = ["输入/previous.mp4", "输入/previous-tail.png"]
+        video["reference_bindings"] = [
+            {
+                **self.reference_binding(),
+                "path": "输入/previous.mp4",
+                "role": "continuity_video",
+                "label": "上一段实际视频",
+            },
+            {
+                **self.reference_binding(),
+                "slot_id": "REF-TAIL",
+                "order": 2,
+                "path": "输入/previous-tail.png",
+                "role": "actual_tail_frame",
+                "label": "实际尾帧",
+            },
+        ]
+        payload = provider_adapters.compile_minimax_h3_payload(
+            video,
+            model="configured",
+            reference_urls=[
+                "https://media.example/previous.mp4",
+                "https://media.example/previous-tail.png",
+            ],
+            reference_roles=["reference_video", "first_frame"],
+            allowed_resolutions={"768P"},
+            duration_range=(6, 6),
+        )
+        text = payload["content"][0]["text"]
+        self.assertIn("参考约束：", text)
+        self.assertIn("参考 1（上一段实际视频），用途 continuity_video", text)
+        self.assertIn("参考 2（实际尾帧），用途 actual_tail_frame", text)
+        self.assertNotIn("Reference image", text)
+        self.assertNotIn("prompt_language", payload)
+        self.assertEqual(payload["content"][1]["type"], "video_url")
+        self.assertEqual(payload["content"][2]["type"], "image_url")
 
     def test_provider_rejects_reference_semantics_that_do_not_match_paths(self) -> None:
         image = self.image_job()

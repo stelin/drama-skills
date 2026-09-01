@@ -24,7 +24,7 @@
   ],
   "references": ["输入/approved-character-reference.png"],
   "outputs": ["剧集/EP001/制作成果/video/SHOT-EP001-001.mp4"],
-  "parameters": {"duration": 5, "ratio": "9:16"},
+  "parameters": {"duration": 5, "ratio": "9:16", "prompt_language": "zh-CN"},
   "overwrite": false
 }
 ```
@@ -52,7 +52,10 @@
   `剧集|episodes/<EP>/制作成果|production/`; extensions must match the modality.
   A nested directory merely named `production` does not grant write access to
   protected input or delivery trees.
-- `parameters`: provider-neutral public settings only. Secret-like keys are rejected.
+- `parameters`: provider-neutral public settings only. Image/video jobs carry the resolved
+  `prompt_language` so a bundled compiler writes its appended reference contract in the same
+  language as the copyable prompt; this execution-only setting is not forwarded as a provider
+  request field. Secret-like keys are rejected.
 - `overwrite`: must be explicitly true to replace an existing result.
 
 `prepare` records internal digests of source/reference bytes and returns the exact confirmation phrase. Callers never
@@ -106,7 +109,9 @@ polling and credentials stay in the external runtime configuration.
 The confirmed document includes `source_entry` and `reference_bindings`. Bundled
 image/video compilers append a deterministic, ordered reference contract to the
 provider prompt so the Chinese label, role, allowed controls, and prohibited
-controls survive the handoff. External adapters must preserve equivalent semantics
+controls survive the handoff. Its prose follows `parameters.prompt_language`, and a reference is
+described generically rather than assuming every bound artifact is an image. External adapters must
+preserve equivalent semantics
 or reject the job; silently reducing the input to an unlabelled file list is invalid.
 
 ## Adapter stdout
