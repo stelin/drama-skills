@@ -567,7 +567,15 @@ def _visual_basis(
     cursor = 0
     separators_are_valid = True
     for index, match in enumerate(matches):
-        if body[cursor : match.start()] != ("" if index == 0 else "；"):
+        # Repeating 《视觉设定.md》· before each entry says the same thing and
+        # reads naturally; rejecting it would cost a round trip over nothing.
+        separator = body[cursor : match.start()]
+        allowed = (
+            {""}
+            if index == 0
+            else {"；", "；" + VISUAL_BASIS_PREFIX}
+        )
+        if separator not in allowed:
             separators_are_valid = False
         cursor = match.end()
     if not prefixed or not matches or not separators_are_valid or body[cursor:]:
@@ -590,6 +598,7 @@ def _visual_basis(
             errors.append(f"{owner}: 视觉依据缺少控制范围: {key[0]}「{key[1]}」")
     offscreen: set[tuple[str, str]] = set()
     if offscreen_raw:
+        offscreen_raw = offscreen_raw.replace(VISUAL_BASIS_PREFIX, "")
         remainder = OFFSCREEN_ENTRY_RE.sub("", offscreen_raw).strip("；、 ")
         offscreen_matches = list(OFFSCREEN_ENTRY_RE.finditer(offscreen_raw))
         if not offscreen_matches or remainder:
@@ -694,22 +703,23 @@ def _prompt_language(project_root: Path) -> str:
 
 
 def _check_language_designators(
-    project_root: Path,
-    *,
-    entries: list[VisualEntry],
-    referenced: set[tuple[str, str]],
-    errors: list[str],
+    project_root: Path, *, entries: list[VisualEntry], errors: list[str]
 ) -> None:
-    """A character used by a shot must be nameable in the prompt's language.
+    """Every character must be nameable in the prompt body's language.
 
     Without this, omitting `画面代称` is a silent opt-out of the coverage check
     for exactly the projects that need it -- the keyframe body defaults to `en`
     while `视觉设定.md` is Chinese, which is the shape issue #94 reported.
+
+    This deliberately does not wait until some shot's 视觉依据 references the
+    entry. Gating on that made the two halves of the contract land in different
+    rounds: a document missing 视觉依据 got one error, and only after fixing it
+    did the missing 画面代称 appear.
     """
     if _prompt_language(project_root).casefold().startswith("zh"):
         return
     for entry in entries:
-        if entry.category != "人物" or entry.key not in referenced:
+        if entry.category != "人物":
             continue
         if entry.designators == [entry.name]:
             errors.append(
@@ -778,7 +788,6 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         for match in OTHER_SETTING_HEADING_RE.finditer(visual)
         if match.group(1).strip() not in VISUAL_CATEGORIES
     }
-    referenced_entries: set[tuple[str, str]] = set()
     image_pairs = re.findall(r"^## (IMG-[A-Z0-9-]+) · (.+)$", images, re.MULTILINE)
     image_headings = dict(image_pairs)
     all_image_headings = re.findall(r"^## (IMG-[A-Z0-9-]+)\b", images, re.MULTILINE)
@@ -894,7 +903,6 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
             basis = _visual_basis(
                 basis_value, shot_id, visual_entries, other_headings, errors
             )
-        referenced_entries.update(basis.declared)
         # The keyframe is the only place the frame's contents exist as text, so a
         # shot without one would make the coverage check below vacuous.
         keyframe = _copyable_prompt(shot_body, heading=r"冻结关键帧提示词")
@@ -949,10 +957,7 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
                 )
 
     _check_language_designators(
-        project_root,
-        entries=visual_entries,
-        referenced=referenced_entries,
-        errors=errors,
+        project_root, entries=visual_entries, errors=errors
     )
     _check_continuity_locks(
         locks,

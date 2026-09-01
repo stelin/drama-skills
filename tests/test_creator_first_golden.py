@@ -598,8 +598,9 @@ class CreatorFirstGoldenTests(unittest.TestCase):
     def test_screen_name_makes_a_foreign_language_keyframe_checkable(self) -> None:
         """The prompt body is English while 视觉设定.md is Chinese.
 
-        `画面代称` is the only declared bridge between them, so removing it must
-        make the coverage check go quiet rather than fire on the wrong entry.
+        `画面代称` is the only declared bridge between them, so an English-prompt
+        project must reach a stated conclusion for every character rather than
+        letting an omission quietly switch the coverage check off.
         """
         visual = text("视觉设定.md")
         self.assertIn("- 画面代称：Jiangchen", visual)
@@ -609,22 +610,39 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             project = Path(directory)
             episode = project / "剧集/EP001"
             shutil.copytree(EPISODE, episode)
-            for path, replacements in (
-                (
-                    episode / "视觉设定.md",
-                    ("- 画面代称：Zhoubosen\n",),
+            document = episode / "视觉设定.md"
+            document.write_text(
+                document.read_text(encoding="utf-8").replace(
+                    "- 画面代称：Zhoubosen\n", "", 1
                 ),
-                (
-                    episode / "分镜.md",
-                    ("；人物「周薄森」（控制：身份、体态、本集造型）",),
-                ),
-            ):
-                document = path.read_text(encoding="utf-8")
-                for replacement in replacements:
-                    self.assertIn(replacement, document)
-                    document = document.replace(replacement, "", 1)
-                path.write_text(document, encoding="utf-8")
+                encoding="utf-8",
+            )
+            # Omitting it is an error in its own right, reported in the same pass
+            # as everything else rather than a round later.
+            self.assertIn(
+                "视觉设定.md: 人物「周薄森」缺少画面代称；"
+                "提示词正文不是中文时，写「画面代称：<正文里的拼写>」，"
+                "正文从不点名时写「画面代称：无」",
+                creator_markdown_check.validate_episode(episode, project),
+            )
 
+            # Declaring 无 is the honest opt-out for a body that never names the
+            # entry, and it silences name matching for that entry only.
+            document.write_text(
+                document.read_text(encoding="utf-8").replace(
+                    "- 识别锚点：方脸、重下颌、灰白板寸、三道额纹、宽肩厚腰；说话和气，压力只从皱眉、停顿和端冷茶显出来。",
+                    "- 识别锚点：方脸、重下颌、灰白板寸、三道额纹、宽肩厚腰；说话和气，压力只从皱眉、停顿和端冷茶显出来。\n- 画面代称：无",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            storyboard = episode / "分镜.md"
+            storyboard.write_text(
+                storyboard.read_text(encoding="utf-8").replace(
+                    "；人物「周薄森」（控制：身份、体态、本集造型）", "", 1
+                ),
+                encoding="utf-8",
+            )
             self.assertEqual(
                 creator_markdown_check.validate_episode(episode, project), []
             )
@@ -718,6 +736,37 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             self.assertTrue(
                 any("缺口之间只用、分隔" in error for error in errors), errors
             )
+
+    def test_repeating_the_document_name_before_each_entry_is_accepted(self) -> None:
+        """A real skill run wrote it this way; it says the same thing.
+
+        Rejecting a readable, unambiguous variant costs the creator a round trip
+        and teaches nothing.
+        """
+        entries = [
+            creator_markdown_check.VisualEntry(category, name, [name])
+            for category, name in (("人物", "小宇"), ("地点", "家庭书房"), ("人物", "妈妈"))
+        ]
+        prefix = creator_markdown_check.VISUAL_BASIS_PREFIX
+        for label, value in {
+            "prefix once": f"{prefix}人物「小宇」（控制：身份）；地点「家庭书房」（控制：灯位）。",
+            "prefix repeated": (
+                f"{prefix}人物「小宇」（控制：身份）；{prefix}地点「家庭书房」（控制：灯位）。"
+            ),
+            "repeated plus offscreen": (
+                f"{prefix}人物「小宇」（控制：身份）；{prefix}地点「家庭书房」（控制：灯位）"
+                f"；画外：{prefix}人物「妈妈」。"
+            ),
+        }.items():
+            with self.subTest(case=label):
+                errors: list[str] = []
+                basis = creator_markdown_check._visual_basis(
+                    value, "SHOT-EP001-001", entries, {}, errors
+                )
+                self.assertEqual(errors, [])
+                self.assertEqual(
+                    basis.declared, {("人物", "小宇"), ("地点", "家庭书房")}
+                )
 
     def test_a_named_subject_that_is_not_in_frame_is_recorded_rather_than_claimed(
         self,
