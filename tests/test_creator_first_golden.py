@@ -411,6 +411,11 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         self.assertIn("用户没有手工点名参考图，不等于选择文生视频", storyboard_skill)
         self.assertIn("用户提供的输入、项目「制作成果」", storyboard_skill)
         self.assertIn("无（待补参考图：", storyboard_skill)
+        self.assertIn(
+            "REF-<slot>（顺序：<n>）· <项目相对路径>《<中文名称>》",
+            storyboard_skill,
+        )
+        self.assertIn("不得用 `/` 代替字段分隔符", storyboard_skill)
         self.assertIn("先自动查找可用真实图片", video_skill)
         self.assertIn("不靠相似文件名猜图", video_skill)
         self.assertIn("不静默降级为文生视频", video_skill)
