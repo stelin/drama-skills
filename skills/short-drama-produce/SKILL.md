@@ -76,7 +76,9 @@ python3 <本技能目录>/scripts/production_tool.py audit <project>
 - **image**：读取 `图片提示词.md` 的当前 `IMG-*` 可复制正文、必要参考图和明确的输出尺寸/数量；
   creator-first job 使用 `source_entry` 锁定这一条。
 - **video**：读取 `视频提示词.md` 的当前 `MOTION-*` 可复制正文，并核对 `分镜.md` 中对应镜头、
-  冻结关键帧、时长与画幅；creator-first job 使用 `source_entry` 锁定这一条。
+  冻结关键帧、时长与画幅；creator-first job 使用 `source_entry` 锁定这一条。连续段选择从上一段
+  生成结果续接时，下一段 job 同时绑定上一段实际视频和从该视频取得的实际尾帧，并保留
+  `continuity_video`、`actual_tail_frame` 的不同职责；不以计划尾帧或文字描述代替真实文件。
 - **tts**：从 `剧本.md` 读取原句与表演要求，声音参考由用户或现有媒体明确提供。不得在生产 job
   中改词，也不为 TTS 新建第六份创作文档。
 - **music**：读取 `视频提示词.md` 中创作者已确认的时间线音乐章节；主题曲使用已确认歌词，纯配乐

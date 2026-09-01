@@ -202,9 +202,26 @@ def project_languages(project: Mapping[str, Any]) -> dict[str, str]:
         if isinstance(format_block, Mapping)
         else None
     )
+    authority = project.get("creator_authority")
+    production_profile = (
+        authority.get("production_profile")
+        if isinstance(authority, Mapping)
+        else None
+    )
+    choices = (
+        production_profile.get("choices")
+        if isinstance(production_profile, Mapping)
+        else None
+    )
+    video_prompt_language = (
+        choices.get("video_prompt_language") if isinstance(choices, Mapping) else None
+    )
     return {
         "language": str(project.get("language") or "zh-CN"),
         "prompt_language": str(prompt_language or DEFAULT_PROMPT_LANGUAGE),
+        "video_prompt_language": str(
+            video_prompt_language or prompt_language or DEFAULT_PROMPT_LANGUAGE
+        ),
     }
 
 
@@ -846,6 +863,7 @@ def _build_status(
         "title": project.get("title"),
         "language": languages["language"],
         "prompt_language": languages["prompt_language"],
+        "video_prompt_language": languages["video_prompt_language"],
         "project_root": project_root,
         "last_action": state.get("last_action"),
         "layout": dict(layout),

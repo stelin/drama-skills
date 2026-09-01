@@ -62,6 +62,21 @@ class ProjectLanguageTests(unittest.TestCase):
         self.assertEqual(project["format"]["prompt_language"], "zh-CN")
         self.assertEqual(project["language"], "zh-CN")
 
+    def test_video_prompt_language_follows_the_target_model_profile(self) -> None:
+        root, project = self.initialize(prompt_language="en")
+        project["creator_authority"]["production_profile"] = {
+            "status": "accepted",
+            "choices": {"video_prompt_language": "zh-CN"},
+        }
+        project_tool.atomic_json(root / project_tool.PROJECT_FILE, project)
+        status = project_tool.project_status(root)
+        self.assertEqual(status["prompt_language"], "en")
+        self.assertEqual(status["video_prompt_language"], "zh-CN")
+
+    def test_video_prompt_language_falls_back_to_general_prompt_language(self) -> None:
+        root, _ = self.initialize(prompt_language="ko")
+        self.assertEqual(project_tool.project_status(root)["video_prompt_language"], "ko")
+
     def test_creator_language_change_does_not_move_prompt_language(self) -> None:
         # The two fields address different audiences. Writing a project in
         # Korean must not silently change what generators are asked to render.
