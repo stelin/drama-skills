@@ -742,7 +742,7 @@ class ConfirmedProductionTests(unittest.TestCase):
                 path = episode / name
                 path.write_text(
                     path.read_text(encoding="utf-8").replace(
-                        "- 输入参考图：无。",
+                        "- 输入参考图：无（创作者已明确选择文生视频）。",
                         f"- 输入参考图：{declaration}",
                         1,
                     ),

@@ -35,6 +35,8 @@ REF_RE = re.compile(
     r"（控制：([^；）]+)；不得控制：([^）]+)）",
     re.IGNORECASE,
 )
+EXPLICIT_TEXT_TO_VIDEO = "无（创作者已明确选择文生视频）"
+PENDING_REFERENCE_SUFFIX_RE = re.compile(r"；待补参考图：[^；。\n]+。?$")
 # A declared lock must never become a no-op. Anything that *looks* like a lock
 # line -- any list marker, any leading whitespace -- is captured here and then
 # has to parse, so a creator who indents the bullet under 识别锚点 gets an error
@@ -102,6 +104,17 @@ def _is_none(value: str) -> bool:
     )
 
 
+def _is_explicit_text_to_video(value: str) -> bool:
+    return _plain(value) == EXPLICIT_TEXT_TO_VIDEO
+
+
+def _has_pending_references(value: str) -> bool:
+    plain = _plain(value)
+    return plain.startswith("无（待补参考图：") or bool(
+        PENDING_REFERENCE_SUFFIX_RE.search(value.strip())
+    )
+
+
 def _is_no_external_reference(value: str) -> bool:
     return not _contains_ref_token(value) and bool(
         re.fullmatch(r"无(?:外部参考)?(?:；[^\n]*)?。?", value.strip())
@@ -142,14 +155,15 @@ def _inside(path: Path, root: Path) -> bool:
 def _references(value: str, owner: str, project_root: Path, errors: list[str]) -> None:
     if _is_none(value):
         return
+    reference_value = PENDING_REFERENCE_SUFFIX_RE.sub("", value.strip())
     matches = list(REF_RE.finditer(value))
     cursor = 0
     separators_are_valid = True
     for index, match in enumerate(matches):
-        if value[cursor : match.start()] != ("" if index == 0 else "；"):
+        if reference_value[cursor : match.start()] != ("" if index == 0 else "；"):
             separators_are_valid = False
         cursor = match.end()
-    trailing = value[cursor:]
+    trailing = reference_value[cursor:]
     if (
         len(matches) != len(re.findall(r"\bREF-[A-Z0-9-]+\b", value))
         or not matches
@@ -478,11 +492,19 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         if _plain(motion_input) != _plain(shot_input):
             errors.append(f"{motion_id}: 输入参考图与 {shot_id} 不一致")
 
+        if _has_pending_references(shot_input):
+            errors.append(f"{motion_id}: 仍有待补参考图，不能生成最终视频提示词")
+
         has_real_image = not _is_none(shot_input)
         expected_mode = "图生视频" if has_real_image else "文生视频"
         if _plain(motion_fields.get("生成方式", "")) != expected_mode:
             errors.append(f"{motion_id}: 生成方式应为{expected_mode}")
         if not has_real_image:
+            if not _is_explicit_text_to_video(shot_input):
+                errors.append(
+                    f"{motion_id}: 无真实输入参考图时不能静默降级为文生视频；"
+                    "请先绑定已有图片、列出待补图片，或记录创作者已明确选择文生视频"
+                )
             anchor = _plain(motion_fields.get("静态视觉锚点", ""))
             if not anchor or anchor == "无":
                 errors.append(f"{motion_id}: 文生视频缺少静态视觉锚点")

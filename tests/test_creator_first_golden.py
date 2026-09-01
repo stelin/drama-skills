@@ -33,6 +33,7 @@ CREATOR_SKILLS = (
 )
 ACTIVE_CREATOR_SKILLS = (*CREATOR_SKILLS, "short-drama-review")
 CREATOR_DOCUMENTS = ROOT / "skills/short-drama/references/creator-documents.md"
+EXPLICIT_TEXT_TO_VIDEO = "无（创作者已明确选择文生视频）。"
 EXPECTED_KNOWHOW = {
     "short-drama": {
         "audience-reveal.md",
@@ -397,7 +398,95 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         for shot_id, body in sections(text("分镜.md"), "SHOT-").items():
             with self.subTest(shot=shot_id):
                 fields = bullet_fields(body)
-                self.assertRegex(fields["输入参考图"], r"^无(?:（[^）]+）)?。?$")
+                self.assertEqual(fields["输入参考图"], EXPLICIT_TEXT_TO_VIDEO)
+
+    def test_reference_discovery_contract_prevents_silent_text_fallback(self) -> None:
+        storyboard_skill = (
+            ROOT / "skills/short-drama-storyboard/SKILL.md"
+        ).read_text(encoding="utf-8")
+        video_skill = (
+            ROOT / "skills/short-drama-video-prompts/SKILL.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("用户没有手工点名参考图，不等于选择文生视频", storyboard_skill)
+        self.assertIn("用户提供的输入、项目「制作成果」", storyboard_skill)
+        self.assertIn("无（待补参考图：", storyboard_skill)
+        self.assertIn("先自动查找可用真实图片", video_skill)
+        self.assertIn("不靠相似文件名猜图", video_skill)
+        self.assertIn("不静默降级为文生视频", video_skill)
+        self.assertIn("不写最终《视频提示词.md》", video_skill)
+
+    def test_validator_blocks_pending_or_implicit_text_fallback(self) -> None:
+        for label, replacement in {
+            "pending references": "无（待补参考图：江晨身份、办公室地理）。",
+            "implicit fallback": "无。",
+        }.items():
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                episode = project / "剧集/EP001"
+                shutil.copytree(EPISODE, episode)
+                for name in ("分镜.md", "视频提示词.md"):
+                    path = episode / name
+                    document = path.read_text(encoding="utf-8")
+                    self.assertIn(f"- 输入参考图：{EXPLICIT_TEXT_TO_VIDEO}", document)
+                    path.write_text(
+                        document.replace(
+                            f"- 输入参考图：{EXPLICIT_TEXT_TO_VIDEO}",
+                            f"- 输入参考图：{replacement}",
+                            1,
+                        ),
+                        encoding="utf-8",
+                    )
+
+                errors = creator_markdown_check.validate_episode(episode, project)
+                self.assertTrue(
+                    any("不能静默降级为文生视频" in error for error in errors),
+                    errors,
+                )
+
+    def test_validator_blocks_partially_ready_references_before_final_prompt(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            reference = project / "输入/参考图/江晨定妆.png"
+            reference.parent.mkdir(parents=True)
+            reference.write_bytes(b"structural fixture")
+            declaration = (
+                "REF-JIANGCHEN-LOOK（顺序：1）· 输入/参考图/江晨定妆.png"
+                "《江晨定妆照》（控制：身份、造型；不得控制：场景地理、构图、动作）"
+                "；待补参考图：办公室地理、本镜起始构图。"
+            )
+            for name in ("分镜.md", "视频提示词.md"):
+                path = episode / name
+                document = path.read_text(encoding="utf-8")
+                path.write_text(
+                    document.replace(
+                        f"- 输入参考图：{EXPLICIT_TEXT_TO_VIDEO}",
+                        f"- 输入参考图：{declaration}",
+                        1,
+                    ),
+                    encoding="utf-8",
+                )
+            video = episode / "视频提示词.md"
+            video.write_text(
+                video.read_text(encoding="utf-8").replace(
+                    "- 生成方式：文生视频", "- 生成方式：图生视频", 1
+                ),
+                encoding="utf-8",
+            )
+
+            errors = creator_markdown_check.validate_episode(episode, project)
+            self.assertTrue(
+                any("仍有待补参考图，不能生成最终视频提示词" in error for error in errors),
+                errors,
+            )
+            self.assertFalse(
+                any("输入参考图必须使用完整 REF 语法" in error for error in errors),
+                errors,
+            )
 
     def test_creator_markdown_validator_accepts_the_golden_episode(self) -> None:
         self.assertEqual(creator_markdown_check.validate_episode(EPISODE, ROOT), [])
@@ -442,16 +531,25 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             reference = project / "输入/参考图/江晨定妆.png"
             reference.parent.mkdir(parents=True)
             reference.write_bytes(b"not decoded by the structural validator")
+            scene_reference = project / "制作成果/场景/办公室.png"
+            scene_reference.parent.mkdir(parents=True)
+            scene_reference.write_bytes(b"not decoded by the structural validator")
+            unrelated_reference = project / "制作成果/其他/海边.png"
+            unrelated_reference.parent.mkdir(parents=True)
+            unrelated_reference.write_bytes(b"must not be bound merely because it exists")
             declaration = (
                 "REF-JIANGCHEN-LOOK（顺序：1）· 输入/参考图/江晨定妆.png"
                 "《江晨定妆照》（控制：身份、造型；不得控制：构图、动作、表情）"
+                "；REF-OFFICE-GEOGRAPHY（顺序：2）· 制作成果/场景/办公室.png"
+                "《办公室场景图》（控制：空间地理、光向；不得控制：人物身份、动作、表情）"
             )
+            self.assertNotIn("海边.png", declaration)
             for name in ("分镜.md", "视频提示词.md"):
                 path = episode / name
                 document = path.read_text(encoding="utf-8")
                 path.write_text(
                     document.replace(
-                        "- 输入参考图：无。", f"- 输入参考图：{declaration}", 1
+                        "- 输入参考图：无（创作者已明确选择文生视频）。", f"- 输入参考图：{declaration}", 1
                     ),
                     encoding="utf-8",
                 )
@@ -493,7 +591,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             ),
             "reference mismatch": (
                 "视频提示词.md",
-                "- 输入参考图：无。",
+                "- 输入参考图：无（创作者已明确选择文生视频）。",
                 "- 输入参考图：REF-X（顺序：1）· 输入/x.png《参考图》（控制：身份；不得控制：动作）",
                 "输入参考图与 SHOT-EP001-001 不一致",
             ),
@@ -505,13 +603,13 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             ),
             "duplicate reference field": (
                 "视频提示词.md",
-                "- 输入参考图：无。",
-                "- 输入参考图：无。\n- 输入参考图：无。",
+                "- 输入参考图：无（创作者已明确选择文生视频）。",
+                "- 输入参考图：无（创作者已明确选择文生视频）。\n- 输入参考图：无（创作者已明确选择文生视频）。",
                 "字段重复: 输入参考图",
             ),
             "hidden REF in no-input marker": (
                 "视频提示词.md",
-                "- 输入参考图：无。",
+                "- 输入参考图：无（创作者已明确选择文生视频）。",
                 "- 输入参考图：无（ref-HERO）",
                 "完整 REF 语法",
             ),
@@ -682,7 +780,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                     document = path.read_text(encoding="utf-8")
                     path.write_text(
                         document.replace(
-                            "- 输入参考图：无。", f"- 输入参考图：{declaration}", 1
+                            "- 输入参考图：无（创作者已明确选择文生视频）。", f"- 输入参考图：{declaration}", 1
                         ),
                         encoding="utf-8",
                     )
@@ -914,7 +1012,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                 *(f"IMG-{number:02d}" for number in range(1, 14))
             },
             "short-drama-storyboard": {
-                *(f"SHT-{number:02d}" for number in range(1, 23)),
+                *(f"SHT-{number:02d}" for number in range(1, 24)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-video-prompts": {
