@@ -120,10 +120,14 @@ CREATOR_SOURCE_NAMES = {
 REF_SLOT_RE = re.compile(r"REF-[A-Z0-9][A-Z0-9-]{0,79}")
 SOURCE_ENTRY_RE = re.compile(r"[A-Z][A-Z0-9-]{1,99}")
 REFERENCE_SUFFIX_RE = r"(?:png|jpe?g|webp)"
+# 用途 is the creator-facing question "what does this picture decide here"; the
+# job's own `role` is its production translation. The segment is optional so a
+# declaration written before that field existed still prepares, and so the
+# creator-side diagnostic stays with creator_markdown_check.py.
 REFERENCE_LINE_RE = re.compile(
     rf"(REF-[A-Z0-9][A-Z0-9-]{{0,79}})（顺序：([1-9]\d*)）· "
     rf"([^；\n]+?\.{REFERENCE_SUFFIX_RE})《([^》\n]+)》"
-    r"（控制：([^；）\n]+)；不得控制：([^）\n]+)）",
+    r"（(?:用途：[^；）\n]+；)?控制：([^；）\n]+)；不得控制：([^）\n]+)）",
     re.IGNORECASE,
 )
 

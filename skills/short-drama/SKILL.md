@@ -47,6 +47,9 @@ license: MIT
    不因图片提示词和分镜可并行，就把后完成的一支留在另一支的旧引用之外。
 7. 视频提示词请求遇到「输入参考图：无」或仍带「待补参考图」时，先路由分镜 owner 检查项目已有图片并刷新绑定。有匹配图就同请求续跑；有必要图缺失就列表停下。
    只有用户明确选择文生视频才允许无图续跑，不把“没有手工指定”当成这个选择。
+8. 用户在会话里点名目标视频模型（“按 MiniMax H3 写”“用 Seedance 2.5”）而 `short-drama.json` 的
+   `production_profile` 还是 `unset` 时，先把这个选择连同它带来的原生时长、参考方式和正文语言写进档案，
+   再继续下游阶段。会话里的一句点名不落到档案上，下一轮就会退回通用路径，方言和时长要重猜。
 
 ## 初始化与 Dashboard
 
@@ -61,6 +64,14 @@ python3 {技能目录}/scripts/project_tool.py init ./my-drama --title "示例�
 未确认项，不让 Brief 中的确定事实留成配置里的 `null`。写入已确认的生产档案时，状态统一为
 `accepted`；`unset` 只表示尚未决定，不另造中间状态。
 `init` 只建立配置和空目录；第一次创作时再把文档写入 `剧集/<EP>/`，不预建空文件。
+项目已经建好、用户之后才定下目标视频模型时，用 `set-authority` 把选择写进档案，并同时展示它对
+时长区间、参考方式和正文语言的影响：
+
+```bash
+python3 {技能目录}/scripts/project_tool.py set-authority <project> \
+  --field /creator_authority/production_profile --decision-ref 创作者决策/<file>.jsonl#<decision-id>
+```
+
 项目定位与安全写入见 [运行预检](references/runtime-preflight.md)。用户明确要求 Dashboard 时运行：
 
 ```bash

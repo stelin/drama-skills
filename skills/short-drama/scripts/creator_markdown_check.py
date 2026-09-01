@@ -29,14 +29,44 @@ REQUIRED_DOCUMENTS = (
 )
 SECTION_RE = re.compile(r"^## ((?:SHOT|MOTION)-[A-Z0-9-]+)\b", re.MULTILINE)
 IMG_RE = re.compile(r"\b(IMG-[A-Z0-9-]+)《([^》]+)》（控制：([^）]+)）")
+# 用途 is optional in the pattern on purpose: a declaration written before this
+# field existed still parses, so the creator gets "REF 缺少用途" instead of the
+# generic syntax error that gives no hint about what to add.
 REF_RE = re.compile(
     r"(REF-[A-Z0-9-]+)（顺序：([1-9]\d*)）· "
     r"([^；\n]+?\.(?:png|jpe?g|webp))《([^》\n]+)》"
-    r"（控制：([^；）]+)；不得控制：([^）]+)）",
+    r"（(?:用途：([^；）\n]+)；)?控制：([^；）]+)；不得控制：([^）]+)）",
     re.IGNORECASE,
+)
+# One picture answers one question. 「同一张图承担两个作用时分开说明」 in
+# references/reference-roles.md is what makes a slot translatable into a
+# provider role, so the vocabulary is closed rather than free prose.
+REF_PURPOSES = (
+    "身份",
+    "造型状态",
+    "地理",
+    "构图",
+    "尺度",
+    "效果",
+    "起始帧",
+    "结束帧",
+    "风格",
 )
 EXPLICIT_TEXT_TO_VIDEO = "无（创作者已明确选择文生视频）"
 PENDING_REFERENCE_SUFFIX_RE = re.compile(r"；待补参考图：[^；。\n]+。?$")
+VISUAL_SETTING_LINE_RE = re.compile(
+    r"^##[ \t　]*(?:人物|造型|地点|道具)[^\n]*$", re.MULTILINE
+)
+VISUAL_SETTING_HEADING_RE = re.compile(
+    r"^## (人物|造型|地点|道具) · (.+?)[ \t　]*$", re.MULTILINE
+)
+SCREEN_NAME_RE = re.compile(
+    r"^[ \t　]*[-*+][ \t　]*画面代称[：:](.+)$", re.MULTILINE
+)
+VISUAL_BASIS_PREFIX = "《视觉设定.md》·"
+VISUAL_BASIS_ENTRY_RE = re.compile(
+    r"(人物|造型|地点|道具)「([^」\n]+)」（控制：([^）\n]+)）"
+)
 # A declared lock must never become a no-op. Anything that *looks* like a lock
 # line -- any list marker, any leading whitespace -- is captured here and then
 # has to parse, so a creator who indents the bullet under 识别锚点 gets an error
@@ -170,7 +200,16 @@ def _references(value: str, owner: str, project_root: Path, errors: list[str]) -
         or not separators_are_valid
         or trailing not in {"", "。"}
     ):
-        errors.append(f"{owner}: 输入参考图必须使用完整 REF 语法")
+        # A gap list joined with ； reads as a fourth REF slot and would otherwise
+        # be reported as broken REF syntax, whose obvious repair is deleting the
+        # gap record -- the silent downgrade this contract exists to prevent.
+        if "待补参考图" in value and not _has_pending_references(value):
+            errors.append(
+                f"{owner}: 待补参考图必须写在最后一个 REF 槽位之后，"
+                "缺口之间只用、分隔"
+            )
+        else:
+            errors.append(f"{owner}: 输入参考图必须使用完整 REF 语法")
         return
     refs = [(match.group(1), int(match.group(2)), match.group(3)) for match in matches]
     slots = [item[0] for item in refs]
@@ -184,11 +223,30 @@ def _references(value: str, owner: str, project_root: Path, errors: list[str]) -
         errors.append(f"{owner}: REF 顺序必须唯一且从 1 连续编号")
     if len(paths) != len(set(paths)):
         errors.append(f"{owner}: REF 路径重复")
+    purposes = [
+        match.group(5).strip() if match.group(5) else "" for match in matches
+    ]
+    for slot, purpose in zip(slots, purposes):
+        if not purpose:
+            errors.append(
+                f"{owner}: REF 缺少用途: {slot}；用途只能是"
+                f"{'、'.join(REF_PURPOSES)}其中一个"
+            )
+        elif purpose not in REF_PURPOSES:
+            errors.append(
+                f"{owner}: REF 用途不在允许集合内: {slot}（{purpose}）；"
+                f"只能是{'、'.join(REF_PURPOSES)}"
+            )
+    for role in ("起始帧", "结束帧"):
+        if purposes.count(role) > 1:
+            errors.append(f"{owner}: 一镜只能有一张{role}参考图")
+    if "结束帧" in purposes and "起始帧" not in purposes:
+        errors.append(f"{owner}: 绑定结束帧参考图时必须同时绑定起始帧")
     for match, (_, _, raw_path) in zip(matches, refs):
         label, may_control, must_not_control = (
             match.group(4),
-            match.group(5),
             match.group(6),
+            match.group(7),
         )
         if not _portable_path(raw_path):
             errors.append(f"{owner}: REF 路径不是安全的项目相对路径: {raw_path}")
@@ -266,6 +324,149 @@ def _carries_surface(prompt: str, surface: str) -> bool:
             return True
         start = haystack.find(needle, start + 1)
     return False
+
+
+class VisualEntry(NamedTuple):
+    """One `视觉设定.md` entry plus every name a prompt body may call it by."""
+
+    category: str
+    name: str
+    designators: list[str]
+
+    @property
+    def key(self) -> tuple[str, str]:
+        return (self.category, self.name)
+
+
+def _visual_entries(document: str, errors: list[str]) -> list[VisualEntry]:
+    """Parse the 人物/造型/地点/道具 entries of one `视觉设定.md`.
+
+    A heading that *looks* like an entry but does not parse would silently drop
+    out of the coverage check and then reappear as "视觉依据 names an entry that
+    does not exist", so it is rejected here where the cause is visible.
+    """
+    for line in VISUAL_SETTING_LINE_RE.findall(document):
+        if VISUAL_SETTING_HEADING_RE.match(line) is None:
+            errors.append(
+                "视觉设定.md: 条目标题必须写成 `## <人物|造型|地点|道具> · <名称>`: "
+                + _excerpt(line)
+            )
+    headings = list(VISUAL_SETTING_HEADING_RE.finditer(document))
+    entries: list[VisualEntry] = []
+    seen: set[tuple[str, str]] = set()
+    for index, heading in enumerate(headings):
+        end = (
+            headings[index + 1].start()
+            if index + 1 < len(headings)
+            else len(document)
+        )
+        category, name = heading.group(1), heading.group(2).strip()
+        if not name:
+            errors.append(f"视觉设定.md: {category}条目缺少名称")
+            continue
+        if (category, name) in seen:
+            errors.append(f"视觉设定.md: 条目重复: {category}「{name}」")
+            continue
+        seen.add((category, name))
+        # The entry's own name is always a designator: a Chinese-language prompt
+        # body calls it exactly that. 画面代称 adds the spelling a prompt written
+        # in another language uses, so the coverage check works either way.
+        designators = [name]
+        for raw in SCREEN_NAME_RE.findall(document[heading.end() : end]):
+            value = _plain(raw)
+            if _is_none(value):
+                continue
+            for item in re.split(r"[、,，]", value):
+                item = item.strip()
+                if item and item not in designators:
+                    designators.append(item)
+        entries.append(VisualEntry(category, name, designators))
+    return entries
+
+
+def _named_entries(prompt: str, entries: list[VisualEntry]) -> set[tuple[str, str]]:
+    """Which declared entries does this frozen keyframe actually call by name?
+
+    Longer designators win: a keyframe that shows 「江晨手机」 names the prop, and
+    the 人物「江晨」 substring inside it is not a second, unrelated claim.
+    """
+    haystack = re.sub(r"\s+", " ", prompt).strip()
+    candidates = sorted(
+        (
+            (re.sub(r"\s+", " ", designator).strip(), entry)
+            for entry in entries
+            for designator in entry.designators
+        ),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    )
+    named: set[tuple[str, str]] = set()
+    taken: list[tuple[int, int]] = []
+    for needle, entry in candidates:
+        # A one-character designator matches far too much prose to be evidence.
+        if len(needle) < 2:
+            continue
+        start = haystack.find(needle)
+        while start != -1:
+            end = start + len(needle)
+            before = haystack[start - 1] if start else ""
+            after = haystack[end] if end < len(haystack) else ""
+            glued = (
+                (_wordish(needle[:1]) and _wordish(before))
+                or (_wordish(needle[-1:]) and _wordish(after))
+            )
+            inside_longer = any(
+                taken_start <= start and end <= taken_end
+                for taken_start, taken_end in taken
+            )
+            if (
+                not glued
+                and not inside_longer
+                and NEGATION_RE.search(haystack[:start]) is None
+            ):
+                named.add(entry.key)
+                taken.append((start, end))
+            start = haystack.find(needle, start + 1)
+    return named
+
+
+def _visual_basis(
+    value: str, owner: str, entries: list[VisualEntry], errors: list[str]
+) -> set[tuple[str, str]]:
+    """Parse one shot's 视觉依据 and resolve it against `视觉设定.md`."""
+    if _is_none(value):
+        return set()
+    plain = _plain(value)
+    body = plain[len(VISUAL_BASIS_PREFIX) :] if plain.startswith(
+        VISUAL_BASIS_PREFIX
+    ) else None
+    matches = list(VISUAL_BASIS_ENTRY_RE.finditer(body)) if body is not None else []
+    cursor = 0
+    separators_are_valid = True
+    for index, match in enumerate(matches):
+        if body[cursor : match.start()] != ("" if index == 0 else "；"):
+            separators_are_valid = False
+        cursor = match.end()
+    if body is None or not matches or not separators_are_valid or body[cursor:]:
+        errors.append(
+            f"{owner}: 视觉依据必须使用完整语法："
+            "《视觉设定.md》·<人物|造型|地点|道具>「<名称>」（控制：<范围>），多项用；连接"
+        )
+        return set()
+    known = {entry.key for entry in entries}
+    declared: set[tuple[str, str]] = set()
+    for match in matches:
+        key = (match.group(1), match.group(2).strip())
+        if key in declared:
+            errors.append(f"{owner}: 视觉依据条目重复: {key[0]}「{key[1]}」")
+        declared.add(key)
+        if key not in known:
+            errors.append(
+                f"{owner}: 视觉依据指向不存在的《视觉设定.md》条目: {key[0]}「{key[1]}」"
+            )
+        if not match.group(3).strip():
+            errors.append(f"{owner}: 视觉依据缺少控制范围: {key[0]}「{key[1]}」")
+    return declared
 
 
 class ContinuityLock(NamedTuple):
@@ -375,6 +576,7 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
     video = (episode / "视频提示词.md").read_text(encoding="utf-8")
     visual = (episode / "视觉设定.md").read_text(encoding="utf-8")
     locks = _continuity_locks(visual, errors)
+    visual_entries = _visual_entries(visual, errors)
     image_pairs = re.findall(r"^## (IMG-[A-Z0-9-]+) · (.+)$", images, re.MULTILINE)
     image_headings = dict(image_pairs)
     all_image_headings = re.findall(r"^## (IMG-[A-Z0-9-]+)\b", images, re.MULTILINE)
@@ -481,6 +683,27 @@ def validate_episode(episode: Path, project_root: Optional[Path] = None) -> list
         if not shot_input:
             errors.append(f"{shot_id}: 缺少输入参考图字段")
         _references(shot_input, shot_id, project_root, errors)
+
+        basis_value = fields.get("视觉依据", "")
+        if not basis_value:
+            errors.append(f"{shot_id}: 缺少视觉依据字段")
+            declared_basis: set[tuple[str, str]] = set()
+        else:
+            declared_basis = _visual_basis(
+                basis_value, shot_id, visual_entries, errors
+            )
+        # The keyframe is the only place the frame's contents exist as text, so a
+        # shot without one would make the coverage check below vacuous.
+        keyframe = _copyable_prompt(shot_body, heading=r"冻结关键帧提示词")
+        if keyframe is None:
+            errors.append(f"{shot_id}: 缺少唯一且非空的冻结关键帧提示词")
+        else:
+            for category, name in sorted(_named_entries(keyframe, visual_entries)):
+                if (category, name) not in declared_basis:
+                    errors.append(
+                        f"{shot_id}: 冻结关键帧提示词写到{category}「{name}」，"
+                        "视觉依据没有覆盖"
+                    )
 
         motion = motion_by_shot.get(shot_id)
         if not motion:

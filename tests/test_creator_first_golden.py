@@ -177,11 +177,11 @@ def image_prompt_references(value: str) -> list[tuple[str, str, str]]:
     )
 
 
-def input_image_references(value: str) -> list[tuple[str, str, str, str, str, str]]:
+def input_image_references(value: str) -> list[tuple[str, str, str, str, str, str, str]]:
     return re.findall(
         r"(REF-[A-Z0-9-]+)（顺序：([1-9]\d*)）· "
         r"([^；]+?\.(?:png|jpe?g|webp))《([^》]+)》"
-        r"（控制：([^；）]+)；不得控制：([^）]+)）",
+        r"（用途：([^；）]+)；控制：([^；）]+)；不得控制：([^）]+)）",
         value,
         re.IGNORECASE,
     )
@@ -375,9 +375,10 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             orders = [int(reference[1]) for reference in references]
             self.assertEqual(len(slots), len(set(slots)))
             self.assertEqual(len(orders), len(set(orders)))
-            for _, _, raw_path, label, scope, excluded_scope in references:
+            for _, _, raw_path, label, purpose, scope, excluded_scope in references:
                 self.assertTrue(is_portable_project_relative_path(raw_path))
                 self.assertRegex(label, r"[\u4e00-\u9fff]")
+                self.assertIn(purpose, creator_markdown_check.REF_PURPOSES)
                 self.assertRegex(scope, r"[\u4e00-\u9fff]")
                 self.assertRegex(excluded_scope, r"[\u4e00-\u9fff]")
 
@@ -409,7 +410,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("用户没有手工点名参考图，不等于选择文生视频", storyboard_skill)
-        self.assertIn("用户提供的输入、项目「制作成果」", storyboard_skill)
+        self.assertIn("用户提供的输入、`剧集/<EP>/制作成果/`", storyboard_skill)
         self.assertIn("无（待补参考图：", storyboard_skill)
         self.assertIn(
             "REF-<slot>（顺序：<n>）· <项目相对路径>《<中文名称>》",
@@ -462,7 +463,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             reference.write_bytes(b"structural fixture")
             declaration = (
                 "REF-JIANGCHEN-LOOK（顺序：1）· 输入/参考图/江晨定妆.png"
-                "《江晨定妆照》（控制：身份、造型；不得控制：场景地理、构图、动作）"
+                "《江晨定妆照》（用途：身份；控制：脸型、体态；不得控制：场景地理、构图、动作）"
                 "；待补参考图：办公室地理、本镜起始构图。"
             )
             for name in ("分镜.md", "视频提示词.md"):
@@ -493,6 +494,247 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                 any("输入参考图必须使用完整 REF 语法" in error for error in errors),
                 errors,
             )
+
+    def test_visual_basis_covers_every_subject_the_keyframe_names(self) -> None:
+        """Issue #94: the keyframe fully described a character the basis never named.
+
+        #84 reported the same defect against 图片提示词项 and was answered with prose
+        alone, so 35 hours later it came back as #94 against 视觉依据. This is the
+        mechanical check that prose did not provide.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            storyboard = episode / "分镜.md"
+            document = storyboard.read_text(encoding="utf-8")
+            covered = "；人物「周薄森」（控制：身份、体态、本集造型）"
+            self.assertIn(covered, document)
+            storyboard.write_text(document.replace(covered, "", 1), encoding="utf-8")
+
+            errors = creator_markdown_check.validate_episode(episode, project)
+            self.assertIn(
+                "SHOT-EP001-002: 冻结关键帧提示词写到人物「周薄森」，视觉依据没有覆盖",
+                errors,
+            )
+
+    def test_visual_basis_resolves_against_the_visual_setting_document(self) -> None:
+        entry = "人物「江晨」（控制：身份、手部无针孔无淤青）"
+        for label, original, replacement, expected in (
+            (
+                "unknown entry",
+                entry,
+                "人物「不存在的人」（控制：身份）",
+                "视觉依据指向不存在的《视觉设定.md》条目: 人物「不存在的人」",
+            ),
+            (
+                "wrong category",
+                entry,
+                "道具「江晨」（控制：身份）",
+                "视觉依据指向不存在的《视觉设定.md》条目: 道具「江晨」",
+            ),
+            (
+                "free prose",
+                f"《视觉设定.md》·{entry}",
+                "江晨",
+                "视觉依据必须使用完整语法",
+            ),
+        ):
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                episode = project / "剧集/EP001"
+                shutil.copytree(EPISODE, episode)
+                storyboard = episode / "分镜.md"
+                document = storyboard.read_text(encoding="utf-8")
+                self.assertIn(original, document)
+                storyboard.write_text(
+                    document.replace(original, replacement, 1), encoding="utf-8"
+                )
+
+                errors = creator_markdown_check.validate_episode(episode, project)
+                self.assertTrue(
+                    any(expected in error for error in errors), errors
+                )
+
+    def test_every_shot_declares_a_visual_basis_and_a_frozen_keyframe(self) -> None:
+        storyboard = text("分镜.md")
+        shots = sections(storyboard, "SHOT-")
+        self.assertTrue(shots)
+        for shot_id, body in shots.items():
+            with self.subTest(shot=shot_id):
+                basis = bullet_fields(body)["视觉依据"]
+                self.assertRegex(basis, r"^《视觉设定\.md》·")
+                self.assertRegex(
+                    basis, r"(?:人物|造型|地点|道具)「[^」]+」（控制：[^）]+）"
+                )
+                self.assertIn("### 冻结关键帧提示词", body)
+
+        # Deleting the keyframe must not become the cheap way to satisfy the
+        # coverage check.
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            path = episode / "分镜.md"
+            document = path.read_text(encoding="utf-8")
+            marker = "### 冻结关键帧提示词\n> 9:16 vertical extreme close-up, a clean"
+            self.assertIn(marker, document)
+            path.write_text(
+                document.replace(
+                    marker, "### 冻结关键帧提示词\n\n### 备注\n> 9:16 vertical extreme close-up, a clean", 1
+                ),
+                encoding="utf-8",
+            )
+            self.assertIn(
+                "SHOT-EP001-001: 缺少唯一且非空的冻结关键帧提示词",
+                creator_markdown_check.validate_episode(episode, project),
+            )
+
+    def test_screen_name_makes_a_foreign_language_keyframe_checkable(self) -> None:
+        """The prompt body is English while 视觉设定.md is Chinese.
+
+        `画面代称` is the only declared bridge between them, so removing it must
+        make the coverage check go quiet rather than fire on the wrong entry.
+        """
+        visual = text("视觉设定.md")
+        self.assertIn("- 画面代称：Jiangchen", visual)
+        self.assertIn("- 画面代称：Zhoubosen", visual)
+
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            for path, replacements in (
+                (
+                    episode / "视觉设定.md",
+                    ("- 画面代称：Zhoubosen\n",),
+                ),
+                (
+                    episode / "分镜.md",
+                    ("；人物「周薄森」（控制：身份、体态、本集造型）",),
+                ),
+            ):
+                document = path.read_text(encoding="utf-8")
+                for replacement in replacements:
+                    self.assertIn(replacement, document)
+                    document = document.replace(replacement, "", 1)
+                path.write_text(document, encoding="utf-8")
+
+            self.assertEqual(
+                creator_markdown_check.validate_episode(episode, project), []
+            )
+
+    def test_reference_slots_declare_one_purpose_from_the_closed_set(self) -> None:
+        cases = {
+            "missing purpose": (
+                "REF-A（顺序：1）· 输入/a.png《人物参考》（控制：脸型；不得控制：动作）",
+                "REF 缺少用途: REF-A",
+            ),
+            "unknown purpose": (
+                "REF-A（顺序：1）· 输入/a.png《人物参考》"
+                "（用途：全参考；控制：脸型；不得控制：动作）",
+                "REF 用途不在允许集合内: REF-A（全参考）",
+            ),
+            "two start frames": (
+                "REF-A（顺序：1）· 输入/a.png《起始帧》"
+                "（用途：起始帧；控制：起始构图；不得控制：动作）；"
+                "REF-B（顺序：2）· 输入/b.png《另一张起始帧》"
+                "（用途：起始帧；控制：姿态；不得控制：动作）",
+                "一镜只能有一张起始帧参考图",
+            ),
+            "end frame without a start frame": (
+                "REF-A（顺序：1）· 输入/a.png《结束帧》"
+                "（用途：结束帧；控制：终点构图；不得控制：新结果）",
+                "绑定结束帧参考图时必须同时绑定起始帧",
+            ),
+        }
+        for label, (declaration, expected) in cases.items():
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                episode = project / "剧集/EP001"
+                shutil.copytree(EPISODE, episode)
+                for name in ("a.png", "b.png"):
+                    reference = project / "输入" / name
+                    reference.parent.mkdir(parents=True, exist_ok=True)
+                    reference.write_bytes(b"structural fixture")
+                for name in ("分镜.md", "视频提示词.md"):
+                    path = episode / name
+                    document = path.read_text(encoding="utf-8")
+                    path.write_text(
+                        document.replace(
+                            f"- 输入参考图：{EXPLICIT_TEXT_TO_VIDEO}",
+                            f"- 输入参考图：{declaration}",
+                            1,
+                        ),
+                        encoding="utf-8",
+                    )
+                video = episode / "视频提示词.md"
+                video.write_text(
+                    video.read_text(encoding="utf-8").replace(
+                        "- 生成方式：文生视频", "- 生成方式：图生视频", 1
+                    ),
+                    encoding="utf-8",
+                )
+
+                errors = creator_markdown_check.validate_episode(episode, project)
+                self.assertTrue(
+                    any(expected in error for error in errors), errors
+                )
+
+    def test_pending_gap_list_reports_its_own_separator(self) -> None:
+        """A ；-joined gap list used to be reported as broken REF syntax.
+
+        The obvious repair for that diagnostic is deleting the gap clause, which
+        reinstates exactly the silent text-to-video downgrade #92 reported.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            episode = project / "剧集/EP001"
+            shutil.copytree(EPISODE, episode)
+            reference = project / "输入/参考图/江晨定妆.png"
+            reference.parent.mkdir(parents=True)
+            reference.write_bytes(b"structural fixture")
+            declaration = (
+                "REF-JIANGCHEN-LOOK（顺序：1）· 输入/参考图/江晨定妆.png"
+                "《江晨定妆照》（用途：身份；控制：脸型、体态；不得控制：构图、动作）"
+                "；待补参考图：办公室地理；本镜起始帧"
+            )
+            path = episode / "分镜.md"
+            path.write_text(
+                path.read_text(encoding="utf-8").replace(
+                    f"- 输入参考图：{EXPLICIT_TEXT_TO_VIDEO}",
+                    f"- 输入参考图：{declaration}",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            errors = creator_markdown_check.validate_episode(episode, project)
+            self.assertTrue(
+                any("缺口之间只用、分隔" in error for error in errors), errors
+            )
+
+    def test_visual_basis_contract_is_stated_where_it_is_authored(self) -> None:
+        storyboard_skill = (
+            ROOT / "skills/short-drama-storyboard/SKILL.md"
+        ).read_text(encoding="utf-8")
+        assets_skill = (ROOT / "skills/short-drama-assets/SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        documents = CREATOR_DOCUMENTS.read_text(encoding="utf-8")
+        h3 = (
+            ROOT / "skills/short-drama-video-prompts/references/minimax-h3.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("三条依据都在关键帧之后回填", storyboard_skill)
+        self.assertIn("「视觉依据」是每镜必写字段", storyboard_skill)
+        self.assertIn("不是这里说的覆盖表", storyboard_skill)
+        self.assertIn("画面代称", storyboard_skill)
+        self.assertIn("画面代称", assets_skill)
+        self.assertIn("「视觉依据」是每镜必写字段", documents)
+        self.assertIn("用途：<用途>；控制：<范围>；不得控制：<范围>", documents)
+        self.assertIn("`<Picture 1>`，第 2 张是 `<Picture 2>`", h3)
+        self.assertIn("整组统一走 full-reference", h3)
 
     def test_creator_markdown_validator_accepts_the_golden_episode(self) -> None:
         self.assertEqual(creator_markdown_check.validate_episode(EPISODE, ROOT), [])
@@ -537,17 +779,17 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             reference = project / "输入/参考图/江晨定妆.png"
             reference.parent.mkdir(parents=True)
             reference.write_bytes(b"not decoded by the structural validator")
-            scene_reference = project / "制作成果/场景/办公室.png"
+            scene_reference = project / "剧集/EP001/制作成果/images/办公室.png"
             scene_reference.parent.mkdir(parents=True)
             scene_reference.write_bytes(b"not decoded by the structural validator")
-            unrelated_reference = project / "制作成果/其他/海边.png"
-            unrelated_reference.parent.mkdir(parents=True)
+            unrelated_reference = project / "剧集/EP001/制作成果/images/海边.png"
+            unrelated_reference.parent.mkdir(parents=True, exist_ok=True)
             unrelated_reference.write_bytes(b"must not be bound merely because it exists")
             declaration = (
                 "REF-JIANGCHEN-LOOK（顺序：1）· 输入/参考图/江晨定妆.png"
-                "《江晨定妆照》（控制：身份、造型；不得控制：构图、动作、表情）"
-                "；REF-OFFICE-GEOGRAPHY（顺序：2）· 制作成果/场景/办公室.png"
-                "《办公室场景图》（控制：空间地理、光向；不得控制：人物身份、动作、表情）"
+                "《江晨定妆照》（用途：身份；控制：脸型、体态；不得控制：构图、动作、表情）"
+                "；REF-OFFICE-GEOGRAPHY（顺序：2）· 剧集/EP001/制作成果/images/办公室.png"
+                "《办公室场景图》（用途：地理；控制：空间地理、光向；不得控制：人物身份、动作、表情）"
             )
             self.assertNotIn("海边.png", declaration)
             for name in ("分镜.md", "视频提示词.md"):
@@ -598,7 +840,7 @@ class CreatorFirstGoldenTests(unittest.TestCase):
             "reference mismatch": (
                 "视频提示词.md",
                 "- 输入参考图：无（创作者已明确选择文生视频）。",
-                "- 输入参考图：REF-X（顺序：1）· 输入/x.png《参考图》（控制：身份；不得控制：动作）",
+                "- 输入参考图：REF-X（顺序：1）· 输入/x.png《参考图》（用途：身份；控制：脸型；不得控制：动作）",
                 "输入参考图与 SHOT-EP001-001 不一致",
             ),
             "missing static anchor": (
@@ -750,26 +992,26 @@ class CreatorFirstGoldenTests(unittest.TestCase):
     ) -> None:
         bad_declarations = {
             "missing file": (
-                "REF-A（顺序：1）· 输入/不存在.png《人物参考》（控制：身份；不得控制：动作）",
+                "REF-A（顺序：1）· 输入/不存在.png《人物参考》（用途：身份；控制：脸型；不得控制：动作）",
                 "REF 文件不存在",
             ),
             "duplicate order": (
-                "REF-A（顺序：1）· 输入/a.png《人物参考》（控制：身份；不得控制：动作）；"
-                "REF-B（顺序：1）· 输入/b.png《场景参考》（控制：地理；不得控制：人物身份）",
+                "REF-A（顺序：1）· 输入/a.png《人物参考》（用途：身份；控制：脸型；不得控制：动作）；"
+                "REF-B（顺序：1）· 输入/b.png《场景参考》（用途：地理；控制：空间地理；不得控制：人物身份）",
                 "REF 顺序必须唯一",
             ),
             "missing separator": (
-                "REF-A（顺序：1）· 输入/a.png《人物参考》（控制：身份；不得控制：动作）"
-                "REF-B（顺序：2）· 输入/b.png《场景参考》（控制：地理；不得控制：人物身份）",
+                "REF-A（顺序：1）· 输入/a.png《人物参考》（用途：身份；控制：脸型；不得控制：动作）"
+                "REF-B（顺序：2）· 输入/b.png《场景参考》（用途：地理；控制：空间地理；不得控制：人物身份）",
                 "完整 REF 语法",
             ),
             "duplicate path": (
-                "REF-A（顺序：1）· 输入/a.png《人物参考》（控制：身份；不得控制：动作）；"
-                "REF-B（顺序：2）· 输入/a.png《另一人物参考》（控制：造型；不得控制：构图）",
+                "REF-A（顺序：1）· 输入/a.png《人物参考》（用途：身份；控制：脸型；不得控制：动作）；"
+                "REF-B（顺序：2）· 输入/a.png《另一人物参考》（用途：造型状态；控制：服装；不得控制：构图）",
                 "REF 路径重复",
             ),
             "conflicting scope": (
-                "REF-A（顺序：1）· 输入/a.png《人物参考》（控制：身份；不得控制：身份）",
+                "REF-A（顺序：1）· 输入/a.png《人物参考》（用途：身份；控制：身份；不得控制：身份）",
                 "控制与不得控制范围冲突",
             ),
         }
@@ -1011,18 +1253,18 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         expected = {
             "short-drama-write": {*(f"SCR-{number:02d}" for number in range(1, 18))},
             "short-drama-assets": {
-                *(f"AST-{number:02d}" for number in range(1, 13)),
+                *(f"AST-{number:02d}" for number in range(1, 14)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-image-prompts": {
                 *(f"IMG-{number:02d}" for number in range(1, 14))
             },
             "short-drama-storyboard": {
-                *(f"SHT-{number:02d}" for number in range(1, 24)),
+                *(f"SHT-{number:02d}" for number in range(1, 26)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-video-prompts": {
-                *(f"VID-{number:02d}" for number in range(1, 24)),
+                *(f"VID-{number:02d}" for number in range(1, 25)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-review": {*(f"REV-{number:02d}" for number in range(1, 12))},

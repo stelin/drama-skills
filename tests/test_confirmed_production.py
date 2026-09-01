@@ -736,7 +736,7 @@ class ConfirmedProductionTests(unittest.TestCase):
             reference.write_bytes(b"structural reference")
             declaration = (
                 "REF-HERO（顺序：1）· 输入/女主定妆.png《女主定妆照》"
-                "（控制：身份、造型；不得控制：构图、动作）"
+                "（用途：身份；控制：脸型、体态；不得控制：构图、动作）"
             )
             for name in ("分镜.md", "视频提示词.md"):
                 path = episode / name
@@ -791,7 +791,7 @@ class ConfirmedProductionTests(unittest.TestCase):
                                 "path": "输入/女主定妆.png",
                                 "label": "女主定妆照",
                                 "role": "identity_and_look",
-                                "may_control": ["身份", "造型"],
+                                "may_control": ["脸型", "体态"],
                                 "must_not_control": ["构图", "动作"],
                             }
                         ],
