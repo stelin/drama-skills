@@ -944,6 +944,14 @@ class CreatorFirstGoldenTests(unittest.TestCase):
                  "《视觉设定.md》·<人物|造型|地点|道具>「<名称>」（控制：<范围>），多项用；连接"],
             )
 
+    def test_prose_mentioning_the_field_is_not_a_malformed_declaration(self) -> None:
+        errors: list[str] = []
+        creator_markdown_check._visual_entries(
+            "## 人物 · 甲\n\n- 识别锚点：长脸。\n\n本集条目的画面代称都按英文正文填写。\n",
+            errors,
+        )
+        self.assertEqual(errors, [])
+
     def test_a_misspelled_screen_name_line_is_not_silently_dropped(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)

@@ -69,7 +69,11 @@ OTHER_SETTING_HEADING_RE = re.compile(r"^## ([^\n·]+?) · (.+?)[ \t　]*$", re.
 # 画面代称 is the one field the coverage check depends on, so — like a
 # continuity lock — anything that looks like it has to parse rather than
 # silently drop out.
-SCREEN_NAME_LINE_RE = re.compile(r"^[^\n]*画面代称[^\n]*$", re.MULTILINE)
+# Anchored at the start of the line so a sentence that merely mentions the
+# field is prose, not a malformed declaration.
+SCREEN_NAME_LINE_RE = re.compile(
+    r"^[ \t　]*[-*+]?[ \t　]*画面代称[ \t　]*[：:][^\n]*$", re.MULTILINE
+)
 SCREEN_NAME_RE = re.compile(
     r"^[ \t　]*[-*+][ \t　]*画面代称[：:](.+)$", re.MULTILINE
 )
@@ -414,12 +418,17 @@ def _visual_entries(document: str, errors: list[str]) -> list[VisualEntry]:
                     item = item.strip()
                     if item and item not in designators:
                         designators.append(item)
-        for designator in designators:
-            if len(designator.strip()) < 2:
-                errors.append(
-                    f"视觉设定.md: {category}「{name}」的画面代称「{designator}」"
-                    "过短，无法在正文中可靠识别；请写成至少两个字符，或写「画面代称：无」"
-                )
+        # Only a *declared* designator earns this diagnostic: the creator chose a
+        # spelling the matcher cannot honour and deserves to know. A one-character
+        # entry name they never declared is simply not name-matched, the same as
+        # any entry in a project whose prompt body is written in another language.
+        if declared:
+            for designator in designators:
+                if len(designator.strip()) < 2:
+                    errors.append(
+                        f"视觉设定.md: {category}「{name}」的画面代称「{designator}」"
+                        "过短，无法在正文中可靠识别；请写成至少两个字符，或写「画面代称：无」"
+                    )
         entries.append(VisualEntry(category, name, designators))
     return entries
 
