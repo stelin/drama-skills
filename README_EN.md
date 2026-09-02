@@ -103,6 +103,8 @@ When the visual language needs alignment, optionally use $short-drama for Look D
 Use $short-drama-image-prompts to write reference prompts for accepted assets
 Use $short-drama-storyboard to author EP001's storyboard and frozen keyframes
 Use $short-drama-video-prompts to translate each authored shot into a video prompt
+# When you name a target model and need people/places/props consistent across shots, say so about references too:
+Use $short-drama-video-prompts to write EP001's video prompts for MiniMax H3; first look through the project for existing character, location and prop images plus this shot's start frame and bind them as references, list whatever is still missing, and do not fall back to text-to-video
 
 # 4. Produce after explicit confirmation
 Use $short-drama-produce to preview EP001's accepted image, video, TTS, or timeline-music job; execute only after I confirm
@@ -110,6 +112,11 @@ Use $short-drama-produce to preview EP001's accepted image, video, TTS, or timel
 # 5. Review when needed
 Use $short-drama-review to review EP001's script and prompts
 ```
+
+A request is worth stating four things: which episode and stage, the target video model,
+where the reference images are or that there are none yet, and — when there are none —
+whether to wait for them or to deliberately go text-to-video. More phrasings are in
+[the creator-first workflow](skills/short-drama/references/creator-workflow.md).
 
 Normal creative work does not run installation self-tests or create JSON/JSONL,
 fingerprints, QA reports, or coverage sheets for every stage batch. Scene/asset/shot

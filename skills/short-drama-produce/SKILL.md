@@ -14,7 +14,10 @@ license: MIT
 
 只在用户明确要求实际生成后，从当前 `图片提示词.md`、`分镜.md` 或 `视频提示词.md` 中
 取出本次提示词，建立一个有边界的运行 job。creator-first job 的 `source` 必须指向拥有这条提示词的
-当前 Markdown，`source_entry` 必须点名对应的 `IMG-*` 或 `MOTION-*` 二级标题。存在真实参考图时，
+当前 Markdown，`source_entry` 必须点名该文档允许的二级标题：`图片提示词.md` 用 `IMG-*`，
+`视频提示词.md` 用 `MOTION-*`，`分镜.md` 用 `SHOT-*`（modality 为 `image`，正文取该镜的
+`### 冻结关键帧提示词`）。分镜这一路是本套件里唯一能把某一镜的起始画面渲染成文件的入口；
+产出落在 `剧集/<EP>/制作成果/images/` 后，分镜 owner 才能把它绑成 `用途：起始帧` 的 `REF-...`。存在真实参考图时，
 还必须逐张填写 `reference_bindings` 的槽位、顺序、路径、中文名、用途以及允许/禁止控制范围；
 `references` 可以省略并由绑定顺序生成，也可以作为相同顺序的显式镜像。输出放在
 `剧集/<EP>/制作成果/`；这个 job 是生产工具的临时输入，不是第六份创作文档：
@@ -75,8 +78,9 @@ python3 <本技能目录>/scripts/production_tool.py audit <project>
 
 ## 输入选择
 
-- **image**：读取 `图片提示词.md` 的当前 `IMG-*` 可复制正文、必要参考图和明确的输出尺寸/数量；
-  creator-first job 使用 `source_entry` 锁定这一条。
+- **image**：读取 `图片提示词.md` 的当前 `IMG-*` 可复制正文，或 `分镜.md` 的当前 `SHOT-*`
+  冻结关键帧正文，加上必要参考图和明确的输出尺寸/数量；creator-first job 使用 `source_entry`
+  锁定这一条。资产板走 `IMG-*`，某一镜的起始画面走 `SHOT-*`；两者不互相替代。
 - **video**：读取 `视频提示词.md` 的当前 `MOTION-*` 可复制正文，并核对 `分镜.md` 中对应镜头、
   冻结关键帧、时长与画幅；creator-first job 使用 `source_entry` 锁定这一条。连续段选择从上一段
   生成结果续接时，下一段 job 同时绑定上一段实际视频和从该视频取得的实际尾帧，并保留

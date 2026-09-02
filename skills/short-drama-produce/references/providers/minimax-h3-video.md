@@ -36,7 +36,10 @@ The prompt is compiled into one `text` item of the multimodal `content` array an
 `role`: `first_frame`, `last_frame`, `reference_image`, `reference_video`, or `reference_audio`.
 Set the job's `parameters.prompt_language` to the resolved video-prompt language; the compiler
 consumes it when appending reference semantics and does not send it as a MiniMax request field.
-`first_frame` and `last_frame` may each appear once.
+`first_frame` and `last_frame` may each appear once. The published envelope also caps reference
+conditioning at 9 `reference_image`, 3 `reference_video` and 3 `reference_audio` items, with video and
+audio clips between 2 and 15 seconds each and at most 15 seconds in total per modality; the compiler
+does not count them, so a configuration that can exceed those numbers has to bound them itself.
 frame conditioning (`first_frame` / `last_frame`) and full-reference conditioning
 (`reference_image` / `reference_video` / `reference_audio`) are mutually exclusive in one request.
 For continuation, bind the previous actual video as `reference_video` and its actual tail as

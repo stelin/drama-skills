@@ -724,6 +724,56 @@ class ConfirmedProductionTests(unittest.TestCase):
                 self.assertEqual(status["state"], "succeeded")
                 self.assertNotIn("command", json.dumps(status))
 
+    def test_a_shot_keyframe_is_a_producible_image_source(self) -> None:
+        """Without this, `用途：起始帧` points at a file no stage can render.
+
+        The frozen keyframe lives only in `分镜.md`, which was not a production
+        source, so issue #92's "which storyboard image do I send" had no answer
+        that the suite itself could produce.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.make_project(directory)
+            storyboard = root / "剧集/EP001/分镜.md"
+            storyboard.write_text(
+                "# EP001 分镜\n\n## SHOT-EP001-001 · 门外停步\n"
+                "- 输入参考图：无（创作者已明确选择文生视频）。\n\n"
+                "### 冻结关键帧提示词\n> A hand resting on a glass desktop.\n",
+                encoding="utf-8",
+            )
+            job = root / "keyframe-job.json"
+
+            def write(**overrides: object) -> Path:
+                document = {
+                    "schema_version": "1.0",
+                    "job_id": "EP001-SHOT001-KEYFRAME",
+                    "modality": "image",
+                    "adapter": "fixture",
+                    "prompt": "A hand resting on a glass desktop.",
+                    "source": "剧集/EP001/分镜.md",
+                    "source_entry": "SHOT-EP001-001",
+                    "outputs": ["剧集/EP001/制作成果/images/SHOT-EP001-001.png"],
+                    "parameters": {"width": 1080, "height": 1920},
+                    "overwrite": False,
+                }
+                document.update(overrides)
+                job.write_text(
+                    json.dumps(document, ensure_ascii=False), encoding="utf-8"
+                )
+                return job
+
+            preview = production_tool.prepare_job(root, write())
+            self.assertEqual(preview["source_entry"], "SHOT-EP001-001")
+            self.assertEqual(
+                preview["outputs"], ["剧集/EP001/制作成果/images/SHOT-EP001-001.png"]
+            )
+
+            with self.assertRaisesRegex(ValueError, "does not match the job modality"):
+                production_tool.prepare_job(
+                    root, write(source_entry="MOTION-EP001-001")
+                )
+            with self.assertRaisesRegex(ValueError, "does not match the selected"):
+                production_tool.prepare_job(root, write(prompt="A different frame."))
+
     def test_creator_episode_runs_through_validation_confirmation_and_adapter(
         self,
     ) -> None:
@@ -736,13 +786,13 @@ class ConfirmedProductionTests(unittest.TestCase):
             reference.write_bytes(b"structural reference")
             declaration = (
                 "REF-HERO（顺序：1）· 输入/女主定妆.png《女主定妆照》"
-                "（控制：身份、造型；不得控制：构图、动作）"
+                "（用途：身份；控制：脸型、体态；不得控制：构图、动作）"
             )
             for name in ("分镜.md", "视频提示词.md"):
                 path = episode / name
                 path.write_text(
                     path.read_text(encoding="utf-8").replace(
-                        "- 输入参考图：无。",
+                        "- 输入参考图：无（创作者已明确选择文生视频）。",
                         f"- 输入参考图：{declaration}",
                         1,
                     ),
@@ -791,7 +841,7 @@ class ConfirmedProductionTests(unittest.TestCase):
                                 "path": "输入/女主定妆.png",
                                 "label": "女主定妆照",
                                 "role": "identity_and_look",
-                                "may_control": ["身份", "造型"],
+                                "may_control": ["脸型", "体态"],
                                 "must_not_control": ["构图", "动作"],
                             }
                         ],
