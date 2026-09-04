@@ -119,6 +119,7 @@ Look Development 是可选分支，不是进入图片提示词或分镜的固定
 - 实拍、二维、三维、水墨、Q 版、国漫的形态差异：[制作形态](references/production-form-profiles.md)
 - 需要比较代表帧时：[Look Development](references/look-development.md)
 - 参考图能控制什么：[参考角色](references/reference-roles.md)
+- 电影长片、横屏剧集或静态漫剧怎样让竖屏默认让位：[观看契约](references/viewing-contract.md)
 - 遮挡、延迟揭示和观众知情时机：[观众揭示](references/audience-reveal.md)
 - 母版、补拍和替代版的职责：[补拍与替代](references/pickup-and-alternate.md)
 

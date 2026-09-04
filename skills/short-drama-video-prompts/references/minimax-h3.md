@@ -152,3 +152,25 @@ MiniMax-H3 的整数时长是 4–15 秒，`MiniMax-H3-Max` 是 5–15 秒（不
 镜头在分镜阶段按闭合状态拆开。本阶段不偷改镜头秒数。
 
 依据：MiniMax-H3 官方 base/ref prompt writing guides 与 MiniMax v2 video generation API。
+
+## 机械核对（`VID-25`）
+
+`scripts/dialect_check.py` 按已接受档案的方言，对《视频提示词.md》的可复制正文做逐字对账；它只核对
+本文件上面明文规定的固定结构，不读语义：
+
+```bash
+python3 <本技能目录>/scripts/dialect_check.py 剧集/<EP> --project-root .
+```
+
+| 代码 | 含义 |
+|---|---|
+| `VID_DIALECT_PICTURE_INDEX` | 正文里的 `<Picture N>` / `<Video N>` / `<Audio N>` 引用了本镜「输入参考图」同类素材 `顺序` 之外的编号，或 full-reference 正文没有引用 `<Picture 1>` |
+| `VID_DIALECT_FIELD_ORDER` | 三段（Base / 首帧 / 首尾帧）或六段（full-reference）字段缺失或顺序不对，或描述段缺 `[Shot 1]` |
+| `VID_DIALECT_CUT_TIME` | 交付分组容器正文里第 k 个成员的 `[Shot k] At mm:ss.mmm,` 时刻不等于前 k−1 个成员已接受时长的累计 |
+| `VID_DIALECT_DIALOGUE_VERBATIM` | `<d>[…] …</d>` 里的台词去空白后在本镜来源场次的《剧本.md》对白/VO/OS 行里找不到逐字原文 |
+| `VID_DIALECT_PROFILE_UNSET` | 信息级：档案未声明方言或未接受，本次跳过，退出码 0 |
+
+模式（三段还是六段）由本镜「输入参考图」的 `用途` 组合推出：只有 `起始帧`（或再加 `结束帧`）是三段，
+其他有图的组合是六段，创作者明确选择文生视频是三段。脚本只读不写；诊断指向 `MOTION-...` 与出错的标记。
+
+学习来源：shuohao-skills 的 H3 对齐指令逐字对账思路，改为按本套件的 `REF-` 顺序与容器算术推导。

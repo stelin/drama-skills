@@ -26,6 +26,9 @@
 | IMG-12 | reviewed_invariant | Each real input reference has a stable `REF-...` slot binding explicit order, a visible project-relative path or other unambiguous artifact locator, a Chinese label, and may-control/must-not-control scope. Reordering preserves slot identity; replacing media explicitly revises that slot's locator. `IMG-...` remains reserved for image-prompt headings. |
 | IMG-13 | structural_invariant | An `IMG-...` item named by a continuity lock in `视觉设定.md` carries that lock's surface verbatim in its copyable prompt. |
 | IMG-14 | structural_invariant | Every `REF-...` slot an image-prompt item declares carries one 用途 from the closed set 身份/造型状态/地理/构图/尺度/效果/起始帧/结束帧/风格, the same vocabulary the storyboard uses, so one picture answers one question. An asset board normally uses the first six; 起始帧 and 结束帧 belong to a shot. |
+| IMG-15 | craft_default | A character sheet chooses its layout from the layout cards (face-baseline three-view, wardrobe-and-hair check, single-view identity) to serve the stated reuse job; any multi-view layout names which view is the baseline the others copy, and layout proportions stay taste. |
+| IMG-16 | structural_invariant | When the visual-setting prop entry declares a scale tier, every copyable prompt of that prop's `IMG-...` items carries the matching scale phrase in the prompt language. |
+| IMG-17 | craft_default | Identity-sheet copyable prompts of different 人物 entries in one episode that are near-duplicates at the word level are flagged as a template warning, never a blocking defect; the reviewer decides. |
 
 规则分级由高到低：`structural_invariant`（结构缺陷，阻断）、
 `reviewed_invariant`（需证据判断）、`craft_default`（常用做法，可覆盖）、

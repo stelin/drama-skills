@@ -154,4 +154,6 @@ python3 {技能目录}/scripts/episode_intake.py index <多集整稿> --out <epi
   [premise-devices.md](references/premise-devices.md)（装置层，叠加在题材卡之上）
 - **起草项目级视觉方向与生产规则（导演阐述）**：
   [director-brief-craft.md](references/director-brief-craft.md)
+- **创作者要在一页上看全片起伏（电影长片、长连续剧）**：
+  [emotion-curve.md](references/emotion-curve.md)（可选产物，不是分集契约的一部分）
 - **本阶段拥有什么、继承什么、不越权什么**：[stage-contract.md](references/stage-contract.md)

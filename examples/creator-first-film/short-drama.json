@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0-draft",
+  "project_id": "LOCAL-PROJECT-ID",
+  "title": "冻河",
+  "language": "zh-CN",
+  "format": {
+    "aspect_ratio": "16:9",
+    "prompt_language": "zh-CN",
+    "episode_count": 1,
+    "target_seconds_per_episode": 65,
+    "pacing": {
+      "spoken_characters_per_second": null,
+      "seconds_per_action_paragraph": null
+    }
+  },
+  "creator_authority": {
+    "decisions_artifact": "创作者决策/",
+    "constraints": [],
+    "visual_direction": {
+      "status": "unset",
+      "choices": {
+        "look_development": null
+      }
+    },
+    "production_profile": {
+      "status": "accepted",
+      "choices": {
+        "target_video_model": "seedance-2.5",
+        "video_prompt_dialect": "seedance-2.5",
+        "video_prompt_language": "zh-CN",
+        "native_duration_seconds": {"min": 4, "max": 30},
+        "supported_generation_modes": ["text", "reference", "edit", "extend"],
+        "audio_generation": "same_pass"
+      }
+    },
+    "delivery_surface": {
+      "status": "unset",
+      "aspect": null,
+      "overlay_regions": [],
+      "source_ref": null
+    }
+  }
+}

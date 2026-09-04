@@ -1095,5 +1095,133 @@ class ProviderRuntimeTests(unittest.TestCase):
         self.assertNotIn(secret, failed.stderr)
 
 
+@unittest.skipIf(os.name == "nt", "the fake codex is a POSIX shell script")
+class CodexImagegenTests(unittest.TestCase):
+    """The codex adapter shells out; its contract is the argv, the stdin prompt and the file it reads back."""
+
+    def fake_codex(self, root: Path, *, exit_code: int = 0) -> Path:
+        script = root / "codex"
+        script.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "--version" ]; then echo "codex-cli 9.9.9"; exit 0; fi\n'
+            'printf "%s\\n" "$@" > argv.txt\n'
+            'echo "${NODE_OPTIONS:-unset}" > node_options.txt\n'
+            "cat > prompt.txt\n"
+            f"if [ {exit_code} -ne 0 ]; then exit {exit_code}; fi\n"
+            "printf '\\211PNG\\r\\n\\032\\ncontent' > result.png\n"
+            'echo "$PWD/result.png"\n',
+            encoding="utf-8",
+        )
+        script.chmod(0o755)
+        return script
+
+    def job(self, project: Path, outputs: Path) -> dict[str, object]:
+        return {
+            "modality": "image",
+            "prompt": "character sheet of a ferryman",
+            "references": ["输入/参考图/定妆.png"],
+            "reference_bindings": [
+                {
+                    "slot_id": "REF-ID",
+                    "order": 1,
+                    "path": "输入/参考图/定妆.png",
+                    "label": "定妆照",
+                    "role": "identity",
+                    "may_control": ["脸型"],
+                    "must_not_control": ["构图"],
+                }
+            ],
+            "outputs": ["剧集/EP001/制作成果/images/sheet.png"],
+            "parameters": {"width": 1920, "height": 1080, "prompt_language": "en"},
+            "project_root": str(project),
+            "output_root": str(outputs),
+        }
+
+    def workspace(self, directory: str) -> tuple[Path, Path, Path]:
+        root = Path(directory)
+        project = root / "project"
+        reference = project / "输入/参考图/定妆.png"
+        reference.parent.mkdir(parents=True)
+        reference.write_bytes(b"\x89PNG\r\n\x1a\nreference")
+        outputs = root / "outputs"
+        outputs.mkdir()
+        return root, project, outputs
+
+    def test_codex_prompt_compiles_deterministically_and_rejects_bad_geometry(self) -> None:
+        job = {
+            "modality": "image",
+            "prompt": "portrait",
+            "references": [],
+            "outputs": ["制作成果/a.png"],
+            "parameters": {"width": 1024, "height": 1536},
+        }
+        text = provider_adapters.compile_codex_imagegen_prompt(job, output_name="result.png")
+        self.assertTrue(text.startswith("Use the built-in image generation tool"))
+        self.assertIn("result.png", text)
+        self.assertIn("Canvas: 1024x1536.", text)
+        self.assertTrue(text.endswith("portrait"))
+        chinese = provider_adapters.compile_codex_imagegen_prompt(
+            {**job, "parameters": {"prompt_language": "zh-CN"}}, output_name="result.png"
+        )
+        self.assertIn("当前工作目录的 result.png", chinese)
+        for label, broken, name in (
+            ("nested name", job, "nested/result.png"),
+            ("wrong extension", job, "result.jpg"),
+            ("half geometry", {**job, "parameters": {"width": 100}}, "result.png"),
+            ("bad quality", {**job, "parameters": {"quality": "ultra"}}, "result.png"),
+            ("video output", {**job, "outputs": ["制作成果/a.mp4"]}, "result.mp4"),
+        ):
+            with self.subTest(case=label), self.assertRaises(ValueError):
+                provider_adapters.compile_codex_imagegen_prompt(broken, output_name=name)
+
+    def test_codex_runtime_hands_the_prompt_over_stdin_and_reads_the_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root, project, outputs = self.workspace(directory)
+            script = self.fake_codex(root)
+            with mock.patch.dict(
+                os.environ,
+                {"CODEX_BIN": str(script), "NODE_OPTIONS": "--require /gone/preload.cjs"},
+                clear=False,
+            ):
+                path, job_id = provider_adapters._run_codex_imagegen(self.job(project, outputs))
+            self.assertEqual(path, outputs / "result.png")
+            self.assertIsNone(job_id)
+            self.assertTrue(path.read_bytes().startswith(b"\x89PNG"))
+            argv = (outputs / "argv.txt").read_text(encoding="utf-8").splitlines()
+            self.assertEqual(
+                argv[:4], ["exec", "--skip-git-repo-check", "--sandbox", "workspace-write"]
+            )
+            self.assertEqual(
+                argv[4:], ["-i", str((project / "输入/参考图/定妆.png").resolve())]
+            )
+            prompt = (outputs / "prompt.txt").read_text(encoding="utf-8")
+            self.assertIn("character sheet of a ferryman", prompt)
+            self.assertIn("result.png", prompt)
+            self.assertIn("Reference 1 (定妆照), role identity", prompt)
+            self.assertIn("Canvas: 1920x1080.", prompt)
+            self.assertEqual(
+                (outputs / "node_options.txt").read_text(encoding="utf-8").strip(), "unset"
+            )
+
+    def test_codex_failures_are_reported_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root, project, outputs = self.workspace(directory)
+            script = self.fake_codex(root, exit_code=3)
+            with mock.patch.dict(os.environ, {"CODEX_BIN": str(script)}, clear=False):
+                with self.assertRaises(provider_adapters.AdapterFailure) as failed:
+                    provider_adapters._run_codex_imagegen(self.job(project, outputs))
+            self.assertEqual(
+                failed.exception.public("codex-imagegen")["code"], "codex_exit_3"
+            )
+            with mock.patch.dict(
+                os.environ, {"CODEX_BIN": str(root / "missing-codex")}, clear=False
+            ), mock.patch.object(provider_adapters.shutil, "which", return_value=None), mock.patch.object(
+                provider_adapters, "CODEX_CANDIDATE_PATHS", ()
+            ):
+                with self.assertRaises(provider_adapters.AdapterFailure) as missing:
+                    provider_adapters._run_codex_imagegen(self.job(project, outputs))
+            self.assertEqual(missing.exception.public("codex-imagegen")["code"], "codex_missing")
+
+
 if __name__ == "__main__":
     unittest.main()

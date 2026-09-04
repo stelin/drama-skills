@@ -51,6 +51,7 @@ license: MIT
 - 阶段边界与规则分级：[阶段契约](references/stage-contract.md)
 - 普通单图的最小配方：[通用配方](references/common-recipe.md)
 - 人物身份板与造型一致性：[人物与造型](references/character-and-look.md)
+- 面部基准三视板 / 服装发型核对板 / 单视图身份板怎么选：[设定板版式卡](references/character-sheet-layouts.md)
 - 地点地理、视角和光线：[地点板](references/location-plate.md)
 - 功能道具、尺度、材质与文字：[道具板](references/prop-plate.md)
 - 造型和状态变体：[造型与状态变体](references/look-and-state-variant.md)

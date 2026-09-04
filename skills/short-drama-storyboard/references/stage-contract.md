@@ -37,6 +37,8 @@
 | SHT-23 | structural_invariant | An omitted reference choice is not consent to text-to-video. After reference discovery, each shot either binds all verified real images, preserves partial bindings while naming the still-missing start/identity/geography/prop images, or records the creator's explicit text-to-video choice. A prompt entry, planned image, plausible filename, or text description never counts as a real image. |
 | SHT-24 | reviewed_invariant | A visual basis describes this frame, not the episode's cast list. Each declared 控制 scope stays within what this frame can carry, and a binding is not carried forward merely because the subject remains in the scene. |
 | SHT-25 | structural_invariant | Every real reference image a shot binds declares one 用途 from the closed set 身份/造型状态/地理/构图/尺度/效果/起始帧/结束帧/风格, so the shot can say which start frame and which identity/geography/prop pictures a downstream job sends. At most one 起始帧 and one 结束帧 per shot, and 结束帧 requires 起始帧. |
+| SHT-26 | craft_default | When `视觉设定.md` declares a viewing contract of 电影长片 or 横屏剧集, the vertical-short-drama defaults (cut density band, geography-inside-action, vertical height cost, vertical blocking and delivery-surface avoidance, vertical composition priority) yield as a whole to that contract; an undeclared contract keeps the suite defaults, and the contract never creates a numeric gate. |
+| SHT-27 | structural_invariant | When the accepted production profile declares `native_duration_seconds`, every shot not packed into a delivery group has a duration inside that range, and a delivery group's total is checked instead of its members; an undeclared profile leaves the check inactive and is not a defect. |
 
 ### `CON`
 

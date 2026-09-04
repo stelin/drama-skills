@@ -122,6 +122,8 @@ license: MIT
 - MiniMax H3 的结构化正文与参考模式：[MiniMax H3 方言](references/minimax-h3.md)
 - 多镜容器或静态漫剧的交付方式：[交付形态](references/delivery-profile.md)
 - 完成前的边界检查：[审查与示例](references/review-and-fixtures.md)
+- 已接受方言下素材编号、切点时刻、时间戳区间与围栏内台词的逐字对账：[dialect_check.py](scripts/dialect_check.py)，
+  用法与诊断代码见各方言文件末尾的「机械核对」
 
 用户明确要求时间线音乐时，在本文档增加独立章节，写使用区间、剧情功能、进入/退出、动态曲线和
 禁用项；歌词必须来自用户提供或明确接受的文本。静态漫剧只需要关键帧切换与配音时可以跳过逐镜

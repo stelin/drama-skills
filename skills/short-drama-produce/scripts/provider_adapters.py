@@ -17,7 +17,9 @@ import mimetypes
 import os
 import re
 import secrets
+import shutil
 import stat
+import subprocess
 import sys
 import time
 import urllib.error
@@ -83,6 +85,17 @@ INLINE_REFERENCE_MIME = {
 }
 GPT_IMAGE_MIN_PIXELS = 655_360
 GPT_IMAGE_MAX_PIXELS = 8_294_400
+# The codex CLI is discovered, never assumed: an explicit CODEX_BIN wins, then
+# PATH, then the usual install locations, and the newest version is taken because
+# an older binary rejects the built-in image tool outright.
+CODEX_CANDIDATE_PATHS = (
+    "~/.npm-global/bin/codex",
+    "~/.local/bin/codex",
+    "/opt/homebrew/bin/codex",
+    "/usr/local/bin/codex",
+)
+CODEX_TIMEOUT_DEFAULT = 900
+CODEX_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 MINIMUM_PYTHON = (3, 9)
 if sys.version_info < MINIMUM_PYTHON:
     raise SystemExit("provider_adapters.py requires Python 3.9 or newer")
@@ -738,6 +751,99 @@ def compile_gpt_image_2_payload(job: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def compile_codex_imagegen_prompt(job: Mapping[str, Any], *, output_name: str) -> str:
+    """Compile an image job into the instruction text handed to ``codex exec``.
+
+    Deterministic and free of I/O. The reference contract is appended in the
+    prompt language; the canvas hint is prose because the built-in image tool
+    takes its sizing from the instruction, not from a parameter field.
+    """
+    prompt, parameters = _require_job(job, "image")
+    parameters = _take(
+        parameters, {"width", "height", "size", "quality", "prompt_language"}
+    )
+    prompt_language = _pop_prompt_language(parameters)
+    suffix = Path(job["outputs"][0]).suffix.casefold()
+    if suffix not in CODEX_IMAGE_SUFFIXES:
+        raise ValueError("unsupported codex-imagegen output extension")
+    if (
+        Path(output_name).suffix.casefold() != suffix
+        or "/" in output_name
+        or "\\" in output_name
+        or not output_name.strip()
+    ):
+        raise ValueError(
+            "codex-imagegen output name must be a bare file name with the target extension"
+        )
+    references = job.get("references", [])
+    if not isinstance(references, list) or len(references) > 16:
+        raise ValueError("codex-imagegen accepts at most sixteen references")
+    if any(
+        not isinstance(reference, str)
+        or Path(reference).suffix.casefold() not in CODEX_IMAGE_SUFFIXES
+        for reference in references
+    ):
+        raise ValueError("codex-imagegen references must be supported image files")
+    width, height, size = (
+        parameters.get("width"),
+        parameters.get("height"),
+        parameters.get("size"),
+    )
+    if (width is None) != (height is None) or (width is not None and size is not None):
+        raise ValueError("use either both width/height or size")
+    canvas: str | None = None
+    if width is not None:
+        if (
+            isinstance(width, bool)
+            or isinstance(height, bool)
+            or not isinstance(width, int)
+            or not isinstance(height, int)
+            or width <= 0
+            or height <= 0
+        ):
+            raise ValueError("image dimensions must be positive integers")
+        canvas = f"{width}x{height}"
+    elif isinstance(size, str) and size.strip():
+        canvas = size.strip()
+    elif size is not None:
+        raise ValueError("codex-imagegen size is invalid")
+    quality = parameters.get("quality")
+    if quality is not None and quality not in {"auto", "low", "medium", "high"}:
+        raise ValueError("codex-imagegen quality is invalid")
+    body = _prompt_with_reference_contract(prompt, job, prompt_language=prompt_language)
+    language = (prompt_language or "en").casefold()
+    if language.startswith("zh"):
+        lines = [
+            "使用内置图像生成工具按下面的规格生成一张图片。",
+            f"完成后把最终选定的图片复制到当前工作目录的 {output_name}，"
+            "只回复文件路径，不要 base64，不要预览。",
+        ]
+        if references:
+            lines.append("附带的参考图按列出的顺序编号；下面的参考约束说明每张图允许控制什么、不得控制什么。")
+        if canvas:
+            lines.append(f"画布：{canvas}。")
+        if quality:
+            lines.append(f"质量档位：{quality}。")
+        lines.append("规格：")
+    else:
+        lines = [
+            "Use the built-in image generation tool to generate ONE image from the specification below.",
+            f"When done, copy the final selected image to {output_name} in the current working "
+            "directory and reply with only that file path — no base64, no preview.",
+        ]
+        if references:
+            lines.append(
+                "The attached reference images are numbered in the order listed; the reference "
+                "contract below states what each may and must not control."
+            )
+        if canvas:
+            lines.append(f"Canvas: {canvas}.")
+        if quality:
+            lines.append(f"Quality: {quality}.")
+        lines.append("Specification:")
+    return "\n".join(lines) + "\n\n" + body
+
+
 def compile_minimax_music_payload(job: Mapping[str, Any]) -> dict[str, Any]:
     """Compile an audio job into the official MiniMax Music 3.0 JSON body."""
     prompt, parameters = _require_job(job, "music")
@@ -1290,6 +1396,130 @@ def _run_openai(job: Mapping[str, Any]) -> tuple[Path, str | None]:
     return _temporary_output(job, job["outputs"][0], content), request_id
 
 
+def _codex_environment() -> dict[str, str]:
+    # codex is itself a Node CLI and inherits NODE_OPTIONS; a stale --require
+    # preload makes it crash at startup with an error that says nothing about
+    # image generation, so the variable is always dropped.
+    environment = dict(os.environ)
+    environment.pop("NODE_OPTIONS", None)
+    return environment
+
+
+def _codex_version(binary: Path) -> tuple[int, ...]:
+    try:
+        completed = subprocess.run(
+            [str(binary), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=_codex_environment(),
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ()
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", completed.stdout + completed.stderr)
+    return tuple(int(part) for part in match.groups()) if match else ()
+
+
+def _codex_binary() -> str:
+    candidates: list[Path] = []
+    explicit = os.environ.get("CODEX_BIN")
+    if explicit:
+        candidates.append(Path(explicit).expanduser())
+    found = shutil.which("codex")
+    if found:
+        candidates.append(Path(found))
+    candidates.extend(Path(raw).expanduser() for raw in CODEX_CANDIDATE_PATHS)
+    best: Path | None = None
+    best_version: tuple[int, ...] = ()
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen or not candidate.is_file() or not os.access(candidate, os.X_OK):
+            continue
+        seen.add(key)
+        version = _codex_version(candidate)
+        if best is None or version > best_version:
+            best, best_version = candidate, version
+    if best is None:
+        raise AdapterFailure(
+            "codex binary not found", category="configuration", code="codex_missing"
+        )
+    return str(best)
+
+
+def _codex_timeout() -> int:
+    raw = os.environ.get("CODEX_TIMEOUT_SECONDS")
+    if raw is None:
+        return CODEX_TIMEOUT_DEFAULT
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError("CODEX_TIMEOUT_SECONDS must be an integer") from exc
+    if not 1 <= value <= 3600:
+        raise ValueError("CODEX_TIMEOUT_SECONDS must be between 1 and 3600")
+    return value
+
+
+def _run_codex_imagegen(job: Mapping[str, Any]) -> tuple[Path, str | None]:
+    output_root = _output_root(job)
+    target = job["outputs"][0]
+    output_name = "result" + Path(target).suffix.casefold()
+    prompt = compile_codex_imagegen_prompt(job, output_name=output_name)
+    references = _reference_paths(job)
+    binary = _codex_binary()
+    argv = [binary, "exec", "--skip-git-repo-check", "--sandbox", "workspace-write"]
+    for path in references:
+        argv.extend(["-i", str(path)])
+    # Variadic flags such as -i swallow a positional prompt, so the prompt always
+    # travels over stdin; one image per invocation keeps the PNG bytes out of the
+    # codex rollout.
+    try:
+        completed = subprocess.run(
+            argv,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            cwd=str(output_root),
+            env=_codex_environment(),
+            timeout=_codex_timeout(),
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise AdapterFailure(
+            "codex exec timed out",
+            category="timeout",
+            code="request_timeout",
+            retryable=True,
+        ) from exc
+    except OSError as exc:
+        raise AdapterFailure(
+            "codex exec could not start",
+            category="configuration",
+            code="codex_unavailable",
+        ) from exc
+    if completed.returncode != 0:
+        raise AdapterFailure(
+            "codex exec failed",
+            category="provider_response",
+            code=f"codex_exit_{completed.returncode}",
+        )
+    produced = output_root / output_name
+    try:
+        details = produced.lstat()
+    except OSError as exc:
+        raise AdapterFailure(
+            "codex did not write the requested image", code="missing_output"
+        ) from exc
+    if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
+        raise AdapterFailure("codex output is not a regular file", code="missing_output")
+    content = produced.read_bytes()
+    if not content or len(content) > MAX_OUTPUT_BYTES:
+        raise AdapterFailure("codex output is empty or too large", code="invalid_image_data")
+    _validate_media_content(target, content)
+    return produced, None
+
+
 def _run_minimax(job: Mapping[str, Any]) -> tuple[Path, str | None]:
     token = _credential("MINIMAX_API_KEY")
     body = compile_minimax_music_payload(job)
@@ -1431,6 +1661,15 @@ def _selftest() -> None:
     }
     if compile_gpt_image_2_payload(image)["model"] != OPENAI_MODEL:
         raise RuntimeError("GPT Image 2 self-test failed")
+    codex_prompt = compile_codex_imagegen_prompt(image, output_name="result.png")
+    if "result.png" not in codex_prompt or "portrait" not in codex_prompt:
+        raise RuntimeError("codex-imagegen prompt self-test failed")
+    try:
+        compile_codex_imagegen_prompt(image, output_name="nested/result.png")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a nested codex-imagegen output name was accepted")
     seedance = compile_seedance_payload(
         video,
         model="configured-model",
@@ -1498,7 +1737,7 @@ def main() -> int:
     parser.add_argument(
         "provider",
         nargs="?",
-        choices=("seedance", "gpt-image-2", "minimax-music", "minimax-h3"),
+        choices=("seedance", "gpt-image-2", "minimax-music", "minimax-h3", "codex-imagegen"),
     )
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
@@ -1516,6 +1755,7 @@ def main() -> int:
             "gpt-image-2": _run_openai,
             "minimax-music": _run_minimax,
             "minimax-h3": _run_minimax_video,
+            "codex-imagegen": _run_codex_imagegen,
         }
         path, provider_job_id = runners[args.provider](job)
         response: dict[str, Any] = {

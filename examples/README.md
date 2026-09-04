@@ -5,6 +5,7 @@
 | 目录 | 回答的问题 | 规模 |
 |---|---|---|
 | [creator-first/](creator-first/) | 新项目默认到底留下什么？ | 一集五份完整 Markdown，0 JSON/JSONL |
+| [creator-first-film/](creator-first-film/) | 横屏电影长片声明观看契约后，哪些默认让位、派生与交付分组长什么样？ | 项目配置 + 一集五份 Markdown |
 | [excerpt-chain/](excerpt-chain/) | 维护测试中的历史文本片段 | 一集四份 Markdown 节选 |
 | [golden-project/](golden-project/) | 维护校验器的完整回归夹具 | 八集结构化测试数据 |
 

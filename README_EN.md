@@ -38,8 +38,14 @@ The production skill shows the exact count, content, references, parameters, out
 and adapter; it executes only after the user sees and confirms that preview. Any job
 or direct-input change invalidates the confirmation, and a started failure cannot be
 retried without a new confirmation. Credentials stay outside the project. The production
-skill includes optional Seedance, GPT Image 2, MiniMax H3 video, and MiniMax Music adapters, while project
-files and the other skills remain provider-neutral.
+skill includes optional Seedance, GPT Image 2, MiniMax H3 video, MiniMax Music and codex-imagegen (local codex
+login, no API key) adapters, while project files and the other skills remain provider-neutral.
+
+For a widescreen feature film, declare a viewing contract in `视觉设定.md` and the vertical short-drama defaults
+(cut-density band, overlay avoidance, no establishing shot) yield as a whole; kinship-derived assets, character-sheet
+layout cards, delivery groups with dialect-token reconciliation and zero-key codex image generation live on the same
+path. See [examples/creator-first-film/](examples/creator-first-film/), [docs/film-workflow.md](docs/film-workflow.md)
+and the merge design in [docs/film-merge-design.md](docs/film-merge-design.md).
 
 ## Install
 
@@ -168,7 +174,7 @@ flowchart LR
 | `short-drama-image-prompts` | Lookdev style frames, reusable character/location/prop reference prompts, and scoped edits |
 | `short-drama-storyboard` | Optional scene visual plans and Coverage Auditions, source coverage, shots, boundaries, and frozen keyframes |
 | `short-drama-video-prompts` | Ordered action, multi-actor performance and attention handoffs, camera/audio intent, timing, exact boundaries, and cross-shot timeline-music specs |
-| `short-drama-produce` | Preview a bounded image/video/TTS/music job, require explicit confirmation, execute an external adapter, and record results; optional Seedance, GPT Image 2, MiniMax H3 video, and MiniMax Music profiles are included |
+| `short-drama-produce` | Preview a bounded image/video/TTS/music job, require explicit confirmation, execute an external adapter, and record results; optional Seedance, GPT Image 2, MiniMax H3 video, MiniMax Music and codex-imagegen profiles are included |
 | `short-drama-review` | Structural/content review, project-bounded diagnosis from authorized production observations, and revision verdicts |
 
 `$short-drama` is the entry router: it initializes, resumes, and opens the Dashboard.

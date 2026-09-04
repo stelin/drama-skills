@@ -24,6 +24,20 @@ but they do not prove beauty, ugliness, body type, skin tone, or facial morality
 Fail when protagonist/antagonist status silently invents those identity traits;
 creator-approved idealization or deliberate counter-casting remains a taste choice.
 
+### Derived identities (`AST-14`–`AST-15`)
+
+Only reviewed when a 人物 entry declares `派生自`. Inherited anchors must survive
+every Look — bone structure, build, fixed marks — two to four of them, with what is
+*not* inherited listed alongside (age and Look-layer content at least). Fail when:
+
+- an inherited item is age, hairstyle, wardrobe, injury or skin state;
+- a derived entry outside twins/clones reads as the upstream face with a costume
+  change, or its divergence names nothing (age, sex, history);
+- the derived identity sheet was prompted before its upstream had a verified
+  `用途：身份` `REF-`, or the sheet's `参考：` binds the upstream picture without
+  carrying the declared non-inherited items in 不得控制 (`AST-15` is structural
+  for resolution and readiness; the binding scope is reviewed here).
+
 ### Voice direction (optional, `AST-07`–`AST-12`)
 
 Only reviewed when `视觉设定.md` records a voice direction. Timbre is carried by a
@@ -85,6 +99,11 @@ apply type-specific criteria:
 
 - **Character sheet:** one identity and coherent Look; useful reference views;
   neutral enough background/light to recognize anchors; no story action chain.
+- **Sheet layout (`IMG-15`):** a multi-view sheet names which view is the baseline
+  the others copy; the chosen layout (face-baseline three-view, wardrobe-and-hair
+  check, single view) serves the stated reuse job rather than resembling a template.
+- **Prop scale (`IMG-16`):** a prop entry that declares a scale tier carries the
+  matching scale phrase in every prompt body — structural, blocks.
 - **Location plate:** navigable geography, orientation, fixed anchors, material,
   palette, light direction, atmosphere; normally empty of cast.
 - **Prop plate:** scale cue, shape, materials, wear, function/moving parts, current
@@ -102,6 +121,12 @@ apply type-specific criteria:
   relationship lines in the same frozen instant;
 - prop has no scale or text state;
 - negative constraints contradict the required visible fact;
+- the prompt both demands and forbids one surface treatment (real skin texture yet
+  no photographic realism; soft directional light yet no shadows) — cite both
+  sentences;
+- two 人物 identity sheets differ only by identifiers and a few adjectives; the
+  validator flags this as a warning (`IMG-17`), the reviewer decides whether the
+  distinguishing anchors are actually there;
 - edit request says “make better” without target/change/preserve;
 - `图片提示词.md` contradicts the current identity, state or text policy in `视觉设定.md`;
 - private URL, source ID, provider task field, or operator complaint leaks in.

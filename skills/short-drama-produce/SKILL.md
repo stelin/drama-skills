@@ -113,7 +113,10 @@ adapter 配置必须在项目外，只包含 argv 命令和超时；凭据由 ad
 引用语义说明（中文名、用途、允许控制与不得控制范围）；不会把槽位名误当成要渲染进画面的文字。
 外部 adapter 也必须保留这组语义或明确拒绝，不能只上传文件而静默丢失控制边界。
 
-本技能可选提供四个 stdlib adapter，均通过项目外 adapter config 选择，凭据只从运行环境读取：
+本技能可选提供五个 stdlib adapter，均通过项目外 adapter config 选择，凭据只从运行环境读取：
+
+- [codex-imagegen](references/providers/codex-imagegen.md)：走本机 codex CLI 的内置图像生成工具，不读任何 API key；
+  自动探测版本最高的 codex、提示词走 stdin、剥离 `NODE_OPTIONS`、一图一次调用；不支持透明背景与精确分辨率。
 
 - [Seedance](references/providers/seedance.md)：模型/Endpoint ID 必须由账号显式配置；compiler 支持
   官方图片、视频和音频参考 role，内置 runtime 未配置可信上传时仍拒绝本地参考文件。

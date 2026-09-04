@@ -29,7 +29,8 @@
 **刻意把确认放在生产之前**：提示词先落进文件，生产 skill 展示本次准确数量、内容、参考、
 参数、输出和 adapter；用户看到预览并明确确认后才执行。任何内容或直接输入变化都会让确认
 失效，已启动的失败任务也不能无确认重试。供应商凭据不进入项目；生产 Skill 自带
-Seedance、GPT Image 2、MiniMax H3 视频与 MiniMax Music 的可选 adapter，但项目文件和其他 Skill 不绑定供应商。
+Seedance、GPT Image 2、MiniMax H3 视频、MiniMax Music 与 codex-imagegen（本机 codex 登录态出图，零 API key）的
+可选 adapter，但项目文件和其他 Skill 不绑定供应商。
 
 ## 安装
 
@@ -110,6 +111,12 @@ done
 想把十个技能按漫剧产线从头串一遍（每步命令、产物与卡点），看
 [漫剧创作全流程指引](docs/comic-drama-workflow.md)。
 
+做横屏电影长片时，在《视觉设定.md》声明观看契约，竖屏短剧的默认（切镜密度、避让区、首镜不给空景）就整体让位；
+血亲/派生资产、设定板版式卡、交付分组与方言标记对账、codex 零 key 出图也都在这条路径上。完整样例是
+[《冻河》第一本](examples/creator-first-film/)，流程见 [电影长片全流程指引](docs/film-workflow.md)，
+合并设计见 [docs/film-merge-design.md](docs/film-merge-design.md)。第一次上手、想按步骤在 Codex 里从安装走到
+出图出片，看 [Codex 操作步骤](docs/codex-usage-guide.md)。
+
 ## 十个技能
 
 ```mermaid
@@ -147,7 +154,7 @@ flowchart LR
 | `short-drama-image-prompts` | Lookdev 风格帧、角色/场景/道具参考板提示词与定点修改说明 |
 | `short-drama-storyboard` | 可选场次视觉计划与 Coverage Audition、原文落实、镜头、边界和冻结关键帧 |
 | `short-drama-video-prompts` | 单镜动作、多人物表演与注意交接、摄影、声音、起止状态、补拍说明，以及跨镜时间线音乐规格 |
-| `short-drama-produce` | 展示有边界的图片/视频/TTS/音乐任务，取得本次明确确认后通过外部 adapter 执行并记录结果；可选支持 Seedance、GPT Image 2、MiniMax H3 视频与 MiniMax Music |
+| `short-drama-produce` | 展示有边界的图片/视频/TTS/音乐任务，取得本次明确确认后通过外部 adapter 执行并记录结果；可选支持 Seedance、GPT Image 2、MiniMax H3 视频、MiniMax Music 与 codex-imagegen |
 | `short-drama-review` | 结构/内容审查、授权生产观察的项目级校准诊断与修订结论 |
 
 `$short-drama` 是入口路由，负责初始化、继续和 Dashboard，把具体工作转给对应技能。交付直接选择

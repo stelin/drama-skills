@@ -46,6 +46,7 @@ EXPECTED_KNOWHOW = {
         "production-form-profiles.md",
         "reference-roles.md",
         "runtime-preflight.md",
+        "viewing-contract.md",
     },
     "short-drama-write": {
         "dialogue-craft.md",
@@ -63,6 +64,7 @@ EXPECTED_KNOWHOW = {
         "continuity-delta.md",
         "continuity-lock.md",
         "identity-vs-variant.md",
+        "kinship-and-derivation.md",
         "location-and-view.md",
         "occurrence-extraction.md",
         "prop-and-state.md",
@@ -71,6 +73,7 @@ EXPECTED_KNOWHOW = {
     },
     "short-drama-image-prompts": {
         "character-and-look.md",
+        "character-sheet-layouts.md",
         "common-recipe.md",
         "edit-and-revision.md",
         "location-plate.md",
@@ -1543,18 +1546,18 @@ class CreatorFirstGoldenTests(unittest.TestCase):
         expected = {
             "short-drama-write": {*(f"SCR-{number:02d}" for number in range(1, 18))},
             "short-drama-assets": {
-                *(f"AST-{number:02d}" for number in range(1, 14)),
+                *(f"AST-{number:02d}" for number in range(1, 16)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-image-prompts": {
-                *(f"IMG-{number:02d}" for number in range(1, 15))
+                *(f"IMG-{number:02d}" for number in range(1, 18))
             },
             "short-drama-storyboard": {
-                *(f"SHT-{number:02d}" for number in range(1, 26)),
+                *(f"SHT-{number:02d}" for number in range(1, 28)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-video-prompts": {
-                *(f"VID-{number:02d}" for number in range(1, 25)),
+                *(f"VID-{number:02d}" for number in range(1, 27)),
                 *(f"CON-{number:02d}" for number in range(1, 8)),
             },
             "short-drama-review": {*(f"REV-{number:02d}" for number in range(1, 12))},
