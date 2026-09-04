@@ -464,6 +464,7 @@ Seedance 2.5（`video_prompt_dialect: seedance-2.5`）：
 | Phase 1 知识层 | 新增 `kinship-and-derivation.md`、`character-sheet-layouts.md`、`viewing-contract.md`、`emotion-curve.md`；实拍卡、`prop-plate.md`、`creator-documents.md`、`knowhow-index.md`、四份 `stage-contract.md`、审查 rubric、CHANGELOG 增量修改 | 仓库自己的 Markdown 规则（链接、锚点、粗体收尾）复刻检查通过；`test_creator_first_golden` 的知识清单与规则目录断言已更新 |
 | Phase 2 结构校验 | `creator_markdown_check.py`：派生解析/环/就绪、时长账目（只报告）、原生区间、交付分组算术、尺度短语、相似度警告、`--dialogue-coverage`；新增 `dialect_check.py`（H3 / Seedance 2.5 结构标记逐字对账） | `tests/test_creator_first_film.py`（26 项）、`tests/test_dialect_check.py`（17 项）与既有 `test_creator_first_golden`、`test_confirmed_production` 全绿 |
 | Phase 3 出图闭环 | `provider_adapters.py` 新增 `codex-imagegen`（版本探测、stdin 提示词、剥离 `NODE_OPTIONS`、白名单错误），`providers/codex-imagegen.md`，SKILL/README | `tests/test_provider_adapters.py` 新增假 codex 夹具三项；`--selftest` 通过；真机 `prepare → confirm → run` 待创作者本机手工走一次 |
+| Phase 3b Seedream 出图 | `provider_adapters.py` 新增 `seedream`（火山方舟 `/images/generations`，与 Seedance 共用 `ARK_API_KEY`，`SEEDREAM_MODEL` 显式、尺寸显式、`b64_json` 单图、参考图 base64 内联、上限与 `output_format` 字段由部署声明），`providers/seedream.md`，SKILL/README/CHANGELOG，`tests/test_shipping_boundaries.py` URL 白名单 | `tests/test_provider_adapters.py` 新增 `SeedreamTests` 四项（契约、拒绝、离线运行、安全失败）；`--selftest` 通过；真机出图待创作者本机走一次 |
 | Phase 4 示例与工作流 | `examples/creator-first-film/`（《冻河》第一本：契约、派生、尺度、锁、省略、交付分组、Seedance 时间戳）、`docs/film-workflow.md`、README 段落 | 两条机械核对 CLI 对示例均返回 `OK`；示例进入 `FilmExampleTests` |
 
 沙箱里通过 `uv` 找到了 Python 3.12，所以上表的测试都在沙箱实跑过；仍需创作者在本机做的三件事：

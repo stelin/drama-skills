@@ -119,7 +119,8 @@ python3 <video-prompts>/scripts/dialect_check.py 剧集/EP001 --project-root .
 
 `codex-imagegen` 走本机 codex 登录态，不读 API key；仍然 `prepare → confirm → run`。出来的定稿图先绑成派生条目
 上游的 `用途：身份` `REF-`，再出子女的身份板；分镜起始帧同样可以由它从冻结关键帧渲染。视频走 Seedance 2.5 adapter，
-续接段绑定上一段实际视频与实际尾帧。
+续接段绑定上一段实际视频与实际尾帧。有火山方舟 key 时，同一条图片提示词也可以把 adapter 换成 `seedream`
+（Seedream 5.0，与 Seedance 共用 `ARK_API_KEY`）：参考图内联送入、尺寸在 job 里显式给出，出图不必依赖 codex 登录态。
 
 ## 常见卡点
 

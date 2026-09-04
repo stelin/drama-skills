@@ -28,24 +28,32 @@
 | 出图 | 走 `codex-imagegen` 时不需要任何 API key，只要上面的 codex 登录态 | — |
 | 出视频 | Seedance 2.5 需要 `ARK_API_KEY` 与 `SEEDANCE_MODEL`；MiniMax H3 需要 `MINIMAX_API_KEY` 与模型配置 | 见 `skills/short-drama-produce/references/providers/` |
 
-Codex 的技能目录是 `${CODEX_HOME:-$HOME/.codex}/skills`；项目级说明文件是 `AGENTS.md`（Codex 每次会话都会读）。
+Codex 的用户级技能目录随版本变过：当前官方文档写的是 `$HOME/.agents/skills`（项目级为 `<仓库>/.agents/skills`），
+较早版本用 `${CODEX_HOME:-$HOME/.codex}/skills`。两处都软链最省事；以会话里 `/skills` 列出的为准。
+项目级说明文件是 `AGENTS.md`（Codex 每次会话都会读）。
+
+CLI、macOS 桌面 app 与 IDE 扩展共用同一套本地技能发现、同一份 `~/.codex/config.toml` 与同一份 `AGENTS.md`，
+所以下面的步骤在桌面 app 里同样成立；桌面 app 特有的注意事项见第 10 节，完整的桌面端流程（含从一部小说开始的
+原著分析与故事开发）另见 [Codex 桌面端操作手册](codex-desktop-guide.md)。
 
 ## 1. 安装与验证
 
 在仓库根目录执行（软链而不是复制：以后 `git pull` 立刻生效）：
 
 ```bash
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-for skill in skills/*; do
-  ln -sfn "$PWD/$skill" "${CODEX_HOME:-$HOME/.codex}/skills/$(basename "$skill")"
+for target in "$HOME/.agents/skills" "${CODEX_HOME:-$HOME/.codex}/skills"; do
+  mkdir -p "$target"
+  for skill in skills/*; do
+    ln -sfn "$PWD/$skill" "$target/$(basename "$skill")"
+  done
 done
-ls -l "${CODEX_HOME:-$HOME/.codex}/skills"
+ls -l "$HOME/.agents/skills"
 ```
 
 三步验证：
 
 1. 每个技能的离线自检：`python3 skills/short-drama/scripts/selftest.py`（其余技能同样有 `scripts/selftest.py`；只在安装、升级或排障时跑）。
-2. 重启 Codex 会话，输入 `$short-drama`，应能看到技能被识别（Codex 读取每个技能目录里的 `agents/openai.yaml`）。
+2. 重启 Codex 会话，输入 `/skills` 看列表里有没有十个 `short-drama*`，再输入 `$short-drama` 确认能被调用（Codex 读取每个技能目录里的 `agents/openai.yaml` 作为显示名与默认提示）。
 3. 用示例跑一次两条校验，确认 Python 与路径都正常：
 
 ```bash
@@ -221,6 +229,10 @@ python3 <技能目录>/skills/short-drama-video-prompts/scripts/dialect_check.py
       "command": ["python3", "/absolute/path/skills/short-drama-produce/scripts/provider_adapters.py", "codex-imagegen"],
       "timeout_seconds": 900
     },
+    "seedream": {
+      "command": ["python3", "/absolute/path/skills/short-drama-produce/scripts/provider_adapters.py", "seedream"],
+      "timeout_seconds": 600
+    },
     "seedance": {
       "command": ["python3", "/absolute/path/skills/short-drama-produce/scripts/provider_adapters.py", "seedance"],
       "timeout_seconds": 3600
@@ -229,8 +241,9 @@ python3 <技能目录>/skills/short-drama-video-prompts/scripts/dialect_check.py
 }
 ```
 
-存成例如 `~/drama-adapters.json`；凭据不写在这里，Seedance 从环境变量 `ARK_API_KEY`、`SEEDANCE_MODEL` 读，
-`codex-imagegen` 只用本机 codex 登录态。
+存成例如 `~/drama-adapters.json`；凭据不写在这里：Seedance 从环境变量 `ARK_API_KEY`、`SEEDANCE_MODEL` 读，
+Seedream 共用 `ARK_API_KEY`、另读 `SEEDREAM_MODEL`（Seedream 5.0 时把 `SEEDREAM_MAX_REFERENCES` 设成 `14`），
+`codex-imagegen` 只用本机 codex 登录态。出图想在 codex-imagegen 与 Seedream 之间切换，只是 job 里换一个 adapter 名。
 
 ### 7.2 出一张角色板
 
@@ -306,9 +319,17 @@ python3 <技能目录>/skills/short-drama/scripts/project_tool.py export ./dong-
 
 ## 10. 常见问题
 
+先说桌面 app 特有的三条：
+
+| 桌面 app 场景 | 建议 |
+|---|---|
+| 线程选"本地"还是"worktree" | 选**本地**（直接在项目目录工作）。worktree 会给每个线程一份隔离副本，而出图结果、`.short-drama/` 里的生产确认与运行记录、`制作成果/` 的媒体都是项目内的文件状态，副本里产生的东西要手工合并回去，媒体文件还不进 git |
+| 云端任务 | 不用于生产步骤：云端没有本机 codex 登录态（`codex-imagegen` 用不了）、没有你的 API key、默认无网络；写剧本、拆资产这类纯文本步骤可以，但改动要同步回本地再跑校验 |
+| Automations（定时后台任务） | 适合每天定时跑第 6 节的两条校验并把结果贴回来；不要把 `run` 放进自动任务——生产必须有你看过预览之后的本次确认 |
+
 | 现象 | 原因与处理 |
 |---|---|
-| `$short-drama` 不被识别 | 软链没建成或 Codex 没重启；`ls -l ~/.codex/skills` 看目标是否指向仓库 |
+| `$short-drama` 不被识别 | 软链没建成、装错了目录或 Codex 没重启；在会话里输入 `/skills` 看列表，再 `ls -l ~/.agents/skills ~/.codex/skills` 看目标是否指向仓库 |
 | `python3: command not found` | macOS 用自带的 `python3`；Windows 用 `py -3` |
 | 技能每次都重新问目标模型 | 会话里的点名没落档案，回第 3 节 |
 | 分镜仍按竖屏节奏切、首镜不给空景 | 《视觉设定.md》「项目视觉方向」缺 `观看契约：电影长片` |
@@ -317,5 +338,7 @@ python3 <技能目录>/skills/short-drama/scripts/project_tool.py export ./dong-
 | `codex_exit_1` | 多半是登录态过期或沙箱拒绝写文件；在普通终端跑一次 `codex --version` 与 `run` |
 | 手持道具被画成家具尺寸 | 道具条目写 `尺度`，正文带尺度短语；`IMG-16` 会拦漏掉的那条 |
 | 想改剪映或 Resolve 精修 | 见 [后期顺片设计记录](post-production-assemble.md) 的三条路线 |
+| 想换出图/出视频模型 | 出图是 job 级：同一条图片提示词换 adapter（`codex-imagegen` / `seedream` / `gpt-image-2`）重新 prepare 即可；出视频是项目级：Seedance 2.0 ↔ 2.5 要改 `production_profile` 的接受档案并按新方言重写《视频提示词.md》，因为时间戳与时长区间不同 |
+| `seedream` 失败 `missing_model` / `invalid_request` | 前者是没设 `SEEDREAM_MODEL`；后者多半是 job 没写 `size`（Seedream 要求显式尺寸）、输出不是 `.png/.jpg`、或参考图超过 `SEEDREAM_MAX_REFERENCES` |
 
 样例项目：[《冻河》第一本](../examples/creator-first-film/)（横屏电影）与 [《让你管账号》EP001](../examples/creator-first/EP001/)（竖屏漫剧）。

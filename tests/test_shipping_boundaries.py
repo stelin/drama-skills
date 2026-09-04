@@ -22,6 +22,10 @@ ALLOWED_PROVIDER_URLS = {
         "https://ark.cn-beijing.volces.com/api/v3",
         "https://www.volcengine.com/docs/82379/1520757",
     },
+    "skills/short-drama-produce/references/providers/seedream.md": {
+        "https://ark.cn-beijing.volces.com/api/v3",
+        "https://www.volcengine.com/docs/82379/1541523",
+    },
     "skills/short-drama-produce/references/providers/gpt-image-2.md": {
         "https://api.openai.com/v1",
         "https://developers.openai.com/api/docs/models/gpt-image-2",

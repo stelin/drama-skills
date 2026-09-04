@@ -29,6 +29,9 @@
 - **全片情绪曲线** 作为开发阶段可选产物（`STY-25`）。
 - **`codex-imagegen` adapter。** 生产技能第 5 个 stdlib adapter，走本机 codex 登录态出图，不读任何 API key；
   仍经 `prepare → confirm → run`。
+- **`seedream` adapter。** 生产技能第 6 个 stdlib adapter：火山方舟 `/images/generations`，与 Seedance 共用
+  `ARK_API_KEY`，模型 ID 由 `SEEDREAM_MODEL` 显式配置（不默认任何版本）；一 job 一图、结果 base64、尺寸显式、
+  参考图 base64 内联，数量上限与 `output_format` 字段由部署声明。Seedream 5.0 与 Seedance 2.x 可以各自独立切换。
 - **横屏电影示例** `examples/creator-first-film/EP001/` 与 `docs/film-workflow.md`。
 
 ### Changed

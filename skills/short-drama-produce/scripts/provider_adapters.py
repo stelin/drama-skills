@@ -85,6 +85,21 @@ INLINE_REFERENCE_MIME = {
 }
 GPT_IMAGE_MIN_PIXELS = 655_360
 GPT_IMAGE_MAX_PIXELS = 8_294_400
+# Seedream is Ark's image endpoint behind the same key as Seedance. Volcengine
+# publishes 14 input pictures for Seedream 4.5 and 5.0 and 10 for 4.0, so the
+# cap is a deployment setting whose default is the lowest official profile. The
+# per-picture byte guard and the size envelope are the union of the published
+# model limits: a value outside them is refused before any request is made, a
+# value inside them is still the configured model's call.
+SEEDREAM_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
+SEEDREAM_SIZE_TOKENS = {"1K", "2K", "3K", "4K"}
+SEEDREAM_MIN_PIXELS = 921_600
+SEEDREAM_MAX_PIXELS = 16_777_216
+SEEDREAM_OUTPUT_FORMATS = {".png": "png", ".jpg": "jpeg", ".jpeg": "jpeg"}
+SEEDREAM_REFERENCE_SUFFIXES = {".png", ".jpg", ".jpeg"}
+SEEDREAM_REFERENCE_BYTES = 10 * 1024 * 1024
+SEEDREAM_MAX_REFERENCES_DEFAULT = 10
+SEEDREAM_MAX_REFERENCES_CEILING = 14
 # The codex CLI is discovered, never assumed: an explicit CODEX_BIN wins, then
 # PATH, then the usual install locations, and the newest version is taken because
 # an older binary rejects the built-in image tool outright.
@@ -751,6 +766,109 @@ def compile_gpt_image_2_payload(job: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def compile_seedream_payload(
+    job: Mapping[str, Any],
+    *,
+    model: str,
+    reference_urls: Sequence[str] = (),
+    max_references: int = SEEDREAM_MAX_REFERENCES_DEFAULT,
+    send_output_format: bool = True,
+) -> dict[str, Any]:
+    """Compile an image job into the Seedream (Volcengine Ark) generation body.
+
+    Deterministic and free of I/O. One job is one picture, so group generation
+    stays disabled, and the picture is requested as base64 so nothing has to be
+    fetched from a provider URL afterwards. ``model`` is mandatory for the same
+    reason as Seedance: the adapter never assumes a Seedream release.
+    """
+    prompt, parameters = _require_job(job, "image")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("Seedream model must be explicitly configured")
+    if (
+        isinstance(max_references, bool)
+        or not isinstance(max_references, int)
+        or not 1 <= max_references <= SEEDREAM_MAX_REFERENCES_CEILING
+    ):
+        raise ValueError("Seedream reference limit must be between 1 and 14")
+    parameters = _take(
+        parameters, {"width", "height", "size", "watermark", "prompt_language"}
+    )
+    prompt_language = _pop_prompt_language(parameters)
+    prompt = _prompt_with_reference_contract(
+        prompt, job, prompt_language=prompt_language
+    )
+    width = parameters.get("width")
+    height = parameters.get("height")
+    size = parameters.get("size")
+    if (width is None) != (height is None) or (width is not None and size is not None):
+        raise ValueError("use either both width/height or size")
+    if width is not None:
+        if (
+            isinstance(width, bool)
+            or isinstance(height, bool)
+            or not isinstance(width, int)
+            or not isinstance(height, int)
+            or width <= 0
+            or height <= 0
+        ):
+            raise ValueError("image dimensions must be positive integers")
+        size = f"{width}x{height}"
+    if size is None:
+        # Ark would fall back to a square default; a sheet or keyframe has a
+        # canvas the creator chose, so the job has to say it.
+        raise ValueError("Seedream needs a size: 1K, 2K, 3K, 4K or an explicit WxH")
+    if not isinstance(size, str) or not (
+        size in SEEDREAM_SIZE_TOKENS or re.fullmatch(r"[1-9]\d*x[1-9]\d*", size)
+    ):
+        raise ValueError("Seedream size is invalid")
+    if size not in SEEDREAM_SIZE_TOKENS:
+        parsed_width, parsed_height = (int(part) for part in size.split("x", 1))
+        if not (1 / 16 <= parsed_width / parsed_height <= 16) or not (
+            SEEDREAM_MIN_PIXELS <= parsed_width * parsed_height <= SEEDREAM_MAX_PIXELS
+        ):
+            raise ValueError("Seedream size violates the published pixel envelope")
+    watermark = parameters.get("watermark", False)
+    if not isinstance(watermark, bool):
+        raise ValueError("Seedream watermark must be a boolean")
+    suffix = Path(job["outputs"][0]).suffix.casefold()
+    if suffix not in SEEDREAM_OUTPUT_FORMATS:
+        raise ValueError("unsupported Seedream output extension")
+    references = job.get("references", [])
+    if not isinstance(references, list) or len(references) > max_references:
+        raise ValueError(f"Seedream accepts at most {max_references} references here")
+    if any(
+        not isinstance(reference, str)
+        or Path(reference).suffix.casefold() not in SEEDREAM_REFERENCE_SUFFIXES
+        for reference in references
+    ):
+        raise ValueError("Seedream references must be PNG or JPEG files")
+    if len(reference_urls) != len(references):
+        raise ValueError("Seedream reference URLs must match job references")
+    if any(
+        not isinstance(url, str)
+        or not (url.startswith("https://") or _is_inline_reference(url))
+        for url in reference_urls
+    ):
+        raise ValueError("Seedream references must be HTTPS URLs or base64 data URIs")
+    body: dict[str, Any] = {
+        "model": model,
+        "prompt": prompt,
+        "size": size,
+        "response_format": "b64_json",
+        "sequential_image_generation": "disabled",
+        "stream": False,
+        "watermark": watermark,
+    }
+    if send_output_format:
+        body["output_format"] = SEEDREAM_OUTPUT_FORMATS[suffix]
+    if reference_urls:
+        # The contract documents one picture as a bare string and several as a list.
+        body["image"] = (
+            reference_urls[0] if len(reference_urls) == 1 else list(reference_urls)
+        )
+    return body
+
+
 def compile_codex_imagegen_prompt(job: Mapping[str, Any], *, output_name: str) -> str:
     """Compile an image job into the instruction text handed to ``codex exec``.
 
@@ -1396,6 +1514,104 @@ def _run_openai(job: Mapping[str, Any]) -> tuple[Path, str | None]:
     return _temporary_output(job, job["outputs"][0], content), request_id
 
 
+def _seedream_settings() -> tuple[int, bool]:
+    """The deployment's reference cap and whether ``output_format`` is sent."""
+    raw_limit = os.environ.get("SEEDREAM_MAX_REFERENCES", "").strip()
+    limit = SEEDREAM_MAX_REFERENCES_DEFAULT
+    if raw_limit:
+        if (
+            not raw_limit.isdigit()
+            or not 1 <= int(raw_limit) <= SEEDREAM_MAX_REFERENCES_CEILING
+        ):
+            raise AdapterFailure(
+                "SEEDREAM_MAX_REFERENCES must be an integer between 1 and 14",
+                category="configuration",
+                code="invalid_reference_limit",
+            )
+        limit = int(raw_limit)
+    # Seedream 5.0 documents `output_format`; earlier releases return JPEG and
+    # do not know the field, so a deployment on them omits it.
+    field = os.environ.get("SEEDREAM_OUTPUT_FORMAT_FIELD", "send").strip().casefold()
+    if field not in {"send", "omit"}:
+        raise AdapterFailure(
+            "SEEDREAM_OUTPUT_FORMAT_FIELD must be send or omit",
+            category="configuration",
+            code="invalid_output_format_setting",
+        )
+    return limit, field == "send"
+
+
+def _run_seedream(job: Mapping[str, Any]) -> tuple[Path, str | None]:
+    token = _credential("ARK_API_KEY")
+    model = os.environ.get("SEEDREAM_MODEL", "").strip()
+    if not model:
+        raise AdapterFailure(
+            "Seedream model is not configured; set SEEDREAM_MODEL to the enabled "
+            "model or endpoint ID",
+            category="configuration",
+            code="missing_model",
+        )
+    max_references, send_output_format = _seedream_settings()
+    references = _reference_paths(job)
+    for path in references:
+        # Ark documents 10MB per input picture, tighter than the generic inline guard.
+        if path.stat().st_size > SEEDREAM_REFERENCE_BYTES:
+            raise AdapterFailure(
+                "Seedream reference exceeds the 10MB per-image limit",
+                category="configuration",
+                code="reference_too_large",
+            )
+    # Every Seedream reference is one entry of `image`. What each picture may
+    # and may not control travels in the appended reference contract rather
+    # than in a provider role, so the inline encoder only needs the image
+    # field's type and size checks.
+    reference_urls = _inline_reference_urls(
+        references,
+        ["reference_image"] * len(references),
+        allowed={"reference_image": "image_url"},
+        provider="Seedream",
+    )
+    body = compile_seedream_payload(
+        job,
+        model=model,
+        reference_urls=reference_urls,
+        max_references=max_references,
+        send_output_format=send_output_format,
+    )
+    base = _base_url("SEEDREAM_BASE_URL", SEEDREAM_BASE_URL)
+    result, headers = _request_json(
+        f"{base}/images/generations", provider="seedream", body=body, token=token
+    )
+    request_id = _request_id(headers)
+    if isinstance(result.get("error"), Mapping):
+        raise AdapterFailure(
+            "Seedream reported an error",
+            code=_provider_code(result) or "provider_error",
+            request_id=request_id,
+        )
+    data = result.get("data")
+    image = (
+        data[0].get("b64_json")
+        if isinstance(data, list) and len(data) == 1 and isinstance(data[0], Mapping)
+        else None
+    )
+    if not isinstance(image, str):
+        raise AdapterFailure(
+            "Seedream did not return exactly one image",
+            code="missing_image",
+            request_id=request_id,
+        )
+    try:
+        content = base64.b64decode(image, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise AdapterFailure(
+            "Seedream returned invalid image data",
+            code="invalid_image_data",
+            request_id=request_id,
+        ) from exc
+    return _temporary_output(job, job["outputs"][0], content), request_id
+
+
 def _codex_environment() -> dict[str, str]:
     # codex is itself a Node CLI and inherits NODE_OPTIONS; a stale --require
     # preload makes it crash at startup with an error that says nothing about
@@ -1661,6 +1877,22 @@ def _selftest() -> None:
     }
     if compile_gpt_image_2_payload(image)["model"] != OPENAI_MODEL:
         raise RuntimeError("GPT Image 2 self-test failed")
+    seedream = compile_seedream_payload(image, model="configured-image-model")
+    if seedream["model"] != "configured-image-model" or seedream["size"] != "1024x1536":
+        raise RuntimeError("Seedream self-test failed")
+    if seedream["response_format"] != "b64_json" or seedream["output_format"] != "png":
+        raise RuntimeError("Seedream output self-test failed")
+    for invalid_seedream in (
+        {**image, "parameters": {}},
+        {**image, "parameters": {"size": "5K"}},
+        {**image, "outputs": ["制作成果/a.webp"]},
+    ):
+        try:
+            compile_seedream_payload(invalid_seedream, model="configured-image-model")
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid Seedream payload was accepted")
     codex_prompt = compile_codex_imagegen_prompt(image, output_name="result.png")
     if "result.png" not in codex_prompt or "portrait" not in codex_prompt:
         raise RuntimeError("codex-imagegen prompt self-test failed")
@@ -1737,7 +1969,14 @@ def main() -> int:
     parser.add_argument(
         "provider",
         nargs="?",
-        choices=("seedance", "gpt-image-2", "minimax-music", "minimax-h3", "codex-imagegen"),
+        choices=(
+            "seedance",
+            "seedream",
+            "gpt-image-2",
+            "minimax-music",
+            "minimax-h3",
+            "codex-imagegen",
+        ),
     )
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
@@ -1752,6 +1991,7 @@ def main() -> int:
             raise ValueError("adapter input must be an object")
         runners = {
             "seedance": _run_seedance,
+            "seedream": _run_seedream,
             "gpt-image-2": _run_openai,
             "minimax-music": _run_minimax,
             "minimax-h3": _run_minimax_video,

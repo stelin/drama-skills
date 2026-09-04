@@ -1223,5 +1223,258 @@ class CodexImagegenTests(unittest.TestCase):
             self.assertEqual(missing.exception.public("codex-imagegen")["code"], "codex_missing")
 
 
+class SeedreamTests(unittest.TestCase):
+    """Seedream shares Ark with Seedance: same key, the image endpoint, one base64 picture per job."""
+
+    PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 24
+
+    def job(self, root: Path, **overrides: object) -> dict[str, object]:
+        job: dict[str, object] = {
+            "modality": "image",
+            "prompt": "面部基准三视板",
+            "references": [],
+            "outputs": ["剧集/EP001/制作成果/images/sheet.png"],
+            "parameters": {"width": 2048, "height": 1152, "prompt_language": "zh-CN"},
+            "project_root": str(root),
+            "output_root": str(root),
+        }
+        job.update(overrides)
+        return job
+
+    def bindings(self, *paths: str) -> dict[str, object]:
+        return {
+            "references": list(paths),
+            "reference_bindings": [
+                {
+                    "slot_id": f"REF-{index}",
+                    "order": index,
+                    "path": path,
+                    "label": "定妆照",
+                    "role": "identity",
+                    "may_control": ["脸型"],
+                    "must_not_control": ["构图"],
+                }
+                for index, path in enumerate(paths, 1)
+            ],
+        }
+
+    def test_seedream_payload_matches_the_documented_contract(self) -> None:
+        root = Path(tempfile.gettempdir())
+        body = provider_adapters.compile_seedream_payload(
+            self.job(root), model="configured-image-model"
+        )
+        self.assertEqual(
+            body,
+            {
+                "model": "configured-image-model",
+                "prompt": "面部基准三视板",
+                "size": "2048x1152",
+                "response_format": "b64_json",
+                "sequential_image_generation": "disabled",
+                "stream": False,
+                "watermark": False,
+                "output_format": "png",
+            },
+        )
+        token = provider_adapters.compile_seedream_payload(
+            self.job(
+                root,
+                outputs=["剧集/EP001/制作成果/images/sheet.jpg"],
+                parameters={"size": "2K", "watermark": True, "prompt_language": "en"},
+            ),
+            model="configured-image-model",
+            send_output_format=False,
+        )
+        self.assertEqual(token["size"], "2K")
+        self.assertTrue(token["watermark"])
+        self.assertNotIn("output_format", token)
+        self.assertNotIn("image", token)
+
+        one = "data:image/png;base64," + base64.b64encode(self.PNG).decode()
+        two = "https://cdn.example/two.jpg"
+        single = provider_adapters.compile_seedream_payload(
+            self.job(root, **self.bindings("a.png")),
+            model="configured-image-model",
+            reference_urls=[one],
+        )
+        self.assertEqual(single["image"], one)
+        self.assertTrue(single["prompt"].endswith("允许控制：脸型。不得控制：构图。"))
+        self.assertIn("参考 1（定妆照），用途 identity", single["prompt"])
+        several = provider_adapters.compile_seedream_payload(
+            self.job(root, **self.bindings("a.png", "b.jpg")),
+            model="configured-image-model",
+            reference_urls=[one, two],
+        )
+        self.assertEqual(several["image"], [one, two])
+
+    def test_seedream_rejects_unsupported_and_invalid_inputs(self) -> None:
+        root = Path(tempfile.gettempdir())
+        compile_payload = provider_adapters.compile_seedream_payload
+        with self.assertRaisesRegex(ValueError, "explicitly configured"):
+            compile_payload(self.job(root), model="")
+        for parameters, reason in (
+            ({}, "needs a size"),
+            ({"width": 2048}, "both width/height"),
+            ({"width": 2048, "height": 1152, "size": "2K"}, "both width/height"),
+            ({"width": 2048, "height": True}, "positive integers"),
+            ({"size": "5K"}, "invalid"),
+            ({"size": "2k"}, "invalid"),
+            ({"size": "2048*1152"}, "invalid"),
+            ({"size": "640x480"}, "pixel envelope"),
+            ({"size": "8192x4096"}, "pixel envelope"),
+            ({"size": "4096x128"}, "pixel envelope"),
+            ({"size": "2K", "watermark": "no"}, "boolean"),
+            ({"size": "2K", "seed": 7}, "unsupported provider parameters"),
+        ):
+            with self.subTest(parameters=parameters), self.assertRaisesRegex(
+                ValueError, reason
+            ):
+                compile_payload(self.job(root, parameters=parameters), model="m")
+        with self.assertRaisesRegex(ValueError, "output extension"):
+            compile_payload(
+                self.job(root, outputs=["剧集/EP001/制作成果/images/sheet.webp"]),
+                model="m",
+            )
+        with self.assertRaisesRegex(ValueError, "PNG or JPEG"):
+            compile_payload(
+                self.job(root, **self.bindings("a.webp")),
+                model="m",
+                reference_urls=["https://cdn.example/a.webp"],
+            )
+        with self.assertRaisesRegex(ValueError, "at most 2 references"):
+            compile_payload(
+                self.job(root, **self.bindings("a.png", "b.png", "c.png")),
+                model="m",
+                reference_urls=["https://cdn.example/x.png"] * 3,
+                max_references=2,
+            )
+        with self.assertRaisesRegex(ValueError, "between 1 and 14"):
+            compile_payload(self.job(root), model="m", max_references=15)
+        with self.assertRaisesRegex(ValueError, "must match job references"):
+            compile_payload(self.job(root, **self.bindings("a.png")), model="m")
+        with self.assertRaisesRegex(ValueError, "HTTPS URLs or base64"):
+            compile_payload(
+                self.job(root, **self.bindings("a.png")),
+                model="m",
+                reference_urls=["http://cdn.example/a.png"],
+            )
+
+    def test_seedream_runtime_sends_inline_references_and_maps_the_response(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.png").write_bytes(self.PNG)
+            (root / "b.jpg").write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 24)
+            job = self.job(root, **self.bindings("a.png", "b.jpg"))
+            captured: dict[str, object] = {}
+
+            def fake_request(url, **kwargs):  # type: ignore[no-untyped-def]
+                captured["url"] = url
+                captured["body"] = kwargs.get("body")
+                captured["token"] = kwargs.get("token")
+                return (
+                    {"data": [{"b64_json": base64.b64encode(self.PNG).decode(), "size": "2048x1152"}]},
+                    {"X-Tt-Logid": "ark-log-1"},
+                )
+
+            env = {"ARK_API_KEY": "ark-secret", "SEEDREAM_MODEL": "doubao-seedream-configured"}
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                provider_adapters, "_request_json", fake_request
+            ):
+                path, request_id = provider_adapters._run_seedream(job)
+            self.assertEqual(path, root / "result.png")
+            self.assertEqual(path.read_bytes(), self.PNG)
+            self.assertEqual(request_id, "ark-log-1")
+            self.assertEqual(captured["url"], provider_adapters.SEEDREAM_BASE_URL + "/images/generations")
+            self.assertEqual(captured["token"], "ark-secret")
+            body = captured["body"]
+            assert isinstance(body, dict)
+            self.assertEqual(body["model"], "doubao-seedream-configured")
+            self.assertEqual(body["output_format"], "png")
+            self.assertEqual(
+                [url[:22] for url in body["image"]],
+                ["data:image/png;base64,", "data:image/jpeg;base64"],
+            )
+
+    def test_seedream_failures_are_reported_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "a.png").write_bytes(self.PNG)
+            plain = self.job(root)
+            bound = self.job(root, **self.bindings("a.png"))
+            base_env = {"ARK_API_KEY": "ark-secret", "SEEDREAM_MODEL": "configured"}
+
+            def run(job, env, response=None, headers=None):  # type: ignore[no-untyped-def]
+                values = {**base_env, **{k: v for k, v in env.items() if v is not None}}
+                with mock.patch.dict(os.environ, values, clear=False):
+                    for name in (k for k, v in env.items() if v is None):
+                        os.environ.pop(name, None)
+                    with mock.patch.object(
+                        provider_adapters,
+                        "_request_json",
+                        return_value=(response or {}, headers or {}),
+                    ) as request, self.assertRaises(provider_adapters.AdapterFailure) as failure:
+                        provider_adapters._run_seedream(job)
+                return failure.exception.public("seedream"), request.called
+
+            public, called = run(plain, {"SEEDREAM_MODEL": None})
+            self.assertEqual((public["category"], public["code"], called), ("configuration", "missing_model", False))
+            public, called = run(plain, {"SEEDREAM_MAX_REFERENCES": "20"})
+            self.assertEqual((public["code"], called), ("invalid_reference_limit", False))
+            public, called = run(plain, {"SEEDREAM_OUTPUT_FORMAT_FIELD": "maybe"})
+            self.assertEqual((public["code"], called), ("invalid_output_format_setting", False))
+            with mock.patch.object(provider_adapters, "SEEDREAM_REFERENCE_BYTES", 8):
+                public, called = run(bound, {})
+            self.assertEqual((public["category"], public["code"], called), ("configuration", "reference_too_large", False))
+            public, called = run(plain, {}, {"data": []}, {"x-request-id": "req-1"})
+            self.assertEqual((public["code"], public["request_id"], called), ("missing_image", "req-1", True))
+            public, _ = run(plain, {}, {"data": [{"b64_json": "%%%"}]})
+            self.assertEqual(public["code"], "invalid_image_data")
+            public, _ = run(plain, {}, {"error": {"code": "SensitiveContent", "message": "secret body"}})
+            self.assertEqual(public["code"], "SensitiveContent")
+            self.assertNotIn("secret body", json.dumps(public))
+            jpeg_target = self.job(root, outputs=["剧集/EP001/制作成果/images/sheet.jpg"])
+            public, _ = run(jpeg_target, {}, {"data": [{"b64_json": base64.b64encode(self.PNG).decode()}]})
+            self.assertEqual(public["code"], "adapter_failure")
+
+            captured: dict[str, object] = {}
+
+            def fake_request(url, **kwargs):  # type: ignore[no-untyped-def]
+                captured["body"] = kwargs.get("body")
+                raise provider_adapters.AdapterFailure("stop after compile")
+
+            with mock.patch.dict(
+                os.environ, {**base_env, "SEEDREAM_OUTPUT_FORMAT_FIELD": "omit"}, clear=False
+            ), mock.patch.object(provider_adapters, "_request_json", fake_request):
+                with self.assertRaisesRegex(provider_adapters.AdapterFailure, "stop after compile"):
+                    provider_adapters._run_seedream(plain)
+            body = captured["body"]
+            assert isinstance(body, dict)
+            self.assertNotIn("output_format", body)
+
+        secret = "ark-credential-must-not-appear"
+        env = os.environ.copy()
+        env["ARK_API_KEY"] = secret
+        env.pop("SEEDREAM_MODEL", None)
+        failed = subprocess.run(
+            [sys.executable, str(SCRIPT), "seedream"],
+            input=json.dumps(self.job(Path(tempfile.gettempdir()))),
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(failed.returncode, 1)
+        self.assertEqual(
+            json.loads(failed.stdout)["error"],
+            {
+                "provider": "seedream",
+                "category": "configuration",
+                "code": "missing_model",
+                "retryable": False,
+            },
+        )
+        self.assertNotIn(secret, failed.stdout + failed.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
